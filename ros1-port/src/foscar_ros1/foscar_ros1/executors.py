@@ -72,27 +72,28 @@ class Executor:
                         entity.callback_group.ending_execution(entity)
                 # A new wait-set snapshot. Do not drain one entity's queue ahead
                 # of the remaining ready entities (the source round-robin rule).
-                ready = []
+                # 이 snapshot을 다 순회한 뒤 readiness를 다시 조사한다.
+                ready_entities = []
                 for node in self._nodes:
                     for entity in tuple(node.timers) + tuple(node.subscriptions):
                         if entity.callback_group.can_execute(entity) and entity.is_ready():
-                            ready.append(entity)
-                if ready:
-                    self._ready.extend(ready)
+                            ready_entities.append(entity)
+                if ready_entities:
+                    self._ready.extend(ready_entities)
                     continue
-                remaining = None if deadline is None else deadline - time.monotonic()
-                if remaining is not None and remaining <= 0:
+                remaining_timeout = None if deadline is None else deadline - time.monotonic()
+                if remaining_timeout is not None and remaining_timeout <= 0:
                     return None
                 # A short wall wait only services shutdown/clock notification.
                 # Readiness and timer deadlines always use the ROS clock.
-                delay = .05 if remaining is None else min(.05, remaining)
+                wait_seconds = .05 if remaining_timeout is None else min(.05, remaining_timeout)
                 for node in self._nodes:
                     for timer in node.timers:
                         if timer.callback_group.can_execute(timer):
-                            duration = timer.time_until_next_call()
-                            if duration is not None and duration > 0:
-                                delay = min(delay, duration * 1e-9)
-                self._condition.wait(delay)
+                            timer_remaining_ns = timer.time_until_next_call()
+                            if timer_remaining_ns is not None and timer_remaining_ns > 0:
+                                wait_seconds = min(wait_seconds, timer_remaining_ns * 1e-9)
+                self._condition.wait(wait_seconds)
         return None
 
     def _execute(self, entity):
@@ -141,13 +142,13 @@ class MultiThreadedExecutor(Executor):
     def _check_futures(self):
         # Application failures must reach main/roslaunch; never hide them in a
         # rospy callback thread or silently drop them in a Future.
-        unfinished = []
+        pending_futures = []
         for future in self._futures:
             if future.done():
                 future.result()
             else:
-                unfinished.append(future)
-        self._futures = unfinished
+                pending_futures.append(future)
+        self._futures = pending_futures
 
     def shutdown(self, timeout_sec=None):
         super().shutdown(timeout_sec)

@@ -18,29 +18,30 @@ def estimate_ground_plane(points):
     points = points[region(points) & (points[:, 2] > -.8) & (points[:, 2] < 1.2)]
     if len(points) < 150:
         return None
-    rng = np.random.default_rng(0)
+    random_generator = np.random.default_rng(0)
     if len(points) > 1500:
-        points = points[rng.choice(len(points), 1500, replace=False)]
+        points = points[random_generator.choice(len(points), 1500, replace=False)]
     design = np.c_[points[:, :2], np.ones(len(points))]
-    best = None
-    count = 0
+    # 가장 많은 inlier를 지지하는 평면을 선택한 뒤 그 점들로 최소제곱 재추정한다.
+    best_inliers = None
+    best_inlier_count = 0
     for _ in range(80):
-        idx = rng.choice(len(points), 3, replace=False)
+        sample_indices = random_generator.choice(len(points), 3, replace=False)
         try:
-            plane = np.linalg.solve(design[idx], points[idx, 2])
+            plane = np.linalg.solve(design[sample_indices], points[sample_indices, 2])
         except np.linalg.LinAlgError:
             continue
         if np.linalg.norm(plane[:2]) > .18 or abs(plane[2]) > .25:
             continue
         inliers = np.abs(design @ plane - points[:, 2]) < .12
-        if int(inliers.sum()) > count:
-            best, count = inliers, int(inliers.sum())
-    if best is None or count < max(120, .6 * len(points)):
+        if int(inliers.sum()) > best_inlier_count:
+            best_inliers, best_inlier_count = inliers, int(inliers.sum())
+    if best_inliers is None or best_inlier_count < max(120, .6 * len(points)):
         return None
-    support = points[best]
+    support = points[best_inliers]
     if np.ptp(support[:, 0]) < 8. or np.ptp(support[:, 1]) < 3.:
         return None
-    plane = np.linalg.lstsq(design[best], points[best, 2], rcond=None)[0]
+    plane = np.linalg.lstsq(design[best_inliers], points[best_inliers, 2], rcond=None)[0]
     if np.linalg.norm(plane[:2]) > .18 or abs(plane[2]) > .25:
         return None
     return plane

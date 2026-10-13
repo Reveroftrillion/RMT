@@ -1,12 +1,12 @@
 # 2026foscar-competition ROS1 port
 
-원본 `../2026foscar-competition`을 비교 기준으로 보존한 독립 catkin 워크스페이스다. SCMC나 다른 RMT 구현을 가져오지 않았다. 작업 브랜치는 `feat/ros1-port`, 기준 커밋은 `a1ea82efbf8d5f165201b7f51bf8a141439fb8c7`이다. 2026-10-13 일일 마감 업로드 대상은 `origin/feat/ros1-port`이며 main에 합치지 않는다.
+원본 `../2026foscar-competition`을 비교 기준으로 보존한 독립 catkin 워크스페이스다. SCMC나 다른 RMT 구현을 가져오지 않았다. ROS1 이식 기준 브랜치는 `feat/ros1-port`, 기준 커밋은 `a1ea82efbf8d5f165201b7f51bf8a141439fb8c7`이다. 2026-10-13 일일 마감 업로드 대상은 당시 `origin/feat/ros1-port`였다. 현재 정리 브랜치는 `refactor/identifiers-docs`이며 push/main 병합은 별도 지시가 필요하다.
 
 Windows 비교에 이어 실제 Ubuntu MORAI PC에서 Docker Noetic 빌드·ROS 메시지/TF·GPU 추론과 주행 일부를 확인했다. 전체 미션 및 ROS2/ROS1 실제 전송·주행 동등성이 입증된 상태는 아니다. 아래 실제 PC 인계 기록을 먼저 읽고, 뒤의 Windows 검증 표는 당시 이력으로 구분한다.
 
 변경 경로는 [파일 안내](docs/CHANGES.md), 검증 수치와 범위는 [검증 결과](docs/verification.md)에 정리했다.
 
-저장소 전체 작업 요약과 GitHub 업로드 명령은 [루트 README](../README.md)에 있다.
+개인 Codex 작업 규칙은 [AGENTS.md](../AGENTS.md), 현재 우선순위·완료 기준·세션 인계는 [DEVELOPMENT_WORKFLOW](docs/DEVELOPMENT_WORKFLOW.md), 전체 Markdown 분류는 [MARKDOWN_INDEX](docs/MARKDOWN_INDEX.md)에 있다. 과거 팀 문서의 미완료 항목은 현재 backlog로 자동 승계하지 않는다. 이번 이름 정리 결과는 [변경 기록](docs/IDENTIFIERS_DOCS_2026-10-13.md)에 따로 남긴다.
 
 Ubuntu MORAI PC의 Python 3.10/GPU Docker 재현 구성은 [Docker 실행 안내](docker/README.md),
 Linux에서 실제 수행한 검사와 원본 센서 조건 차이는 [Docker 검증 기록](docs/NOETIC_DOCKER_VALIDATION.md)에 있다.
@@ -17,7 +17,9 @@ Linux에서 실제 수행한 검사와 원본 센서 조건 차이는 [Docker �
 
 ## 2026-10-13 MORAI 실행과 다음 작업 인계
 
-### 현재 결론: 연결은 복구됐고, 두 번째 교차로에서 새 녹색을 채택하지 못했다
+이 절은 **2026-10-13 현장 검증과 당시 다음 세션 계획의 과거 기록**이다. 네트워크·명령·수치·판단 근거는 보존한다. 현재 계획은 DEVELOPMENT_WORKFLOW를 따른다. 아래 직접 주행 명령은 사용자 명시 지시가 있을 때만 실행한다.
+
+### 2026-10-13 결론: 연결은 복구됐고, 두 번째 교차로에서 새 녹색을 채택하지 못했다
 
 작업 PC는 `/home/foscar/RMT-ros1`, 브랜치 `feat/ros1-port`다. 이번 문서화 작업에서는 주행을 시작하거나
 원본 알고리즘·미션·지도·경로·모델·ROI·confidence·튜닝·watchdog을 변경하지 않았다.
@@ -118,7 +120,7 @@ TrafficLightCtrl7607→7503도 사용자 화면에서 확인했지만 현재 bri
 Target Frame 설정은50Hz다. 실제 수신 빈도는 시뮬레이터 부하에 따라 달라지므로 설정값으로 수신 성공을 단정하지 않는다.
 
 Competition 최초 Host908은 이 호스트의 낮은 포트 bind 제한이 원인일 가능성이 있었고 사용자가9088로 바꿨다.
-Destination909는 그대로다. **다음 날에도 Competition의 Connect를 따로 확인한다.**
+Destination909는 그대로다. **새 세션마다 Competition의 Connect를 따로 확인한다.**
 Ego Network나 Ego Ctrl Cmd가 Connected여도 Competition 송신은 꺼져 있을 수 있다.
 이번에는9088 소켓 부재/status0이었다가 재연결 후 실제181바이트 수신이 복구됐다.
 Pause/Connect의 과거 조작 순서는 사용자도 확실히 기억하지 못하므로 disconnect 원인 자체는 확정하지 않는다.
@@ -128,7 +130,7 @@ Pause/Connect의 과거 조작 순서는 사용자도 확실히 기억하지 못
 이 옵션은 런타임 root에 NET_BIND_SERVICE를 부여하고 원본 및 이식 src를 읽기 전용으로 mount한다.
 일반 빌드는 호스트 UID로 수행한다. `--capture-control`의 NET_RAW는 수동 패킷 관측에만 필요한 추가 옵션이다.
 
-### 다음 날 연결 점검과 직접 주행 순서
+### 2026-10-13에 정리한 후속 연결 점검과 직접 주행 절차
 
 1. MORAI를 Pause 상태로 두고 같은 차량·지도·센서가 선택됐는지 확인한다. 수동 가속·기어 변경으로
    핸드셰이크를 대신하지 않는다. 수신 복구 시 이미 drive=true 실행이 있으면 출발할 수 있으므로 기존 실행부터 확인한다.
@@ -318,7 +320,7 @@ sensor_bridge는 command age0.25초, IMU/status age1.5초, 유한값·accel/brak
 [core.py](src/foscar_control/foscar_control/core.py),
 [bridge.py](src/foscar_control/foscar_control/bridge.py).
 
-### 센서 입력 차이: 내일 먼저 맞출 항목과 아직 모르는 항목
+### 센서 입력 차이: 당시 후속 확인 대상으로 남긴 항목
 
 | 센서 | 실제 MORAI 설정 | 원본/코드 기준 | 다음 확인 |
 | --- | --- | --- | --- |
@@ -332,7 +334,7 @@ Camera-1은1280×720이지만 Camera-7의 대용이 아니다. 모델/ROI를 유
 카메라 위치·각도·화각이 달라진다. MORAI 전체 화면에 보이는 신호와 Camera-7 JPEG 안의 대상도 같다고 단정할 수 없다.
 `YOLO on CUDAExecutionProvider`는 session 사용 근거이며 올바른 신호등 선택이나 녹색 정확도의 근거는 아니다.
 
-### 내일 수정 순서: 증거로 갈라서 고친다
+### 2026-10-13 당시 제안한 조사 순서 — 미해결 계획
 
 1. 연결과status freshness부터 재확인한다. status0이면 아래인식문제와 분리해 Competition Connect를 복구한다.
 2. 현재 정지 위치에서 drive=false로 관측한다. 다음 절대로 raw 영상·debug box·YOLO JSONL·신호정책을 동시에 기록한다.
@@ -449,6 +451,8 @@ dets는 `(color, confidence, normalized_center_x, normalized_center_y)` 목록�
 
 ## 기존 Windows 검증 요약
 
+아래는 식별자 정리 전 결과다. production Python의 바이트 동일 파일 수는 당시 이력이며 현재 이름 변경은 [고정 기준 역매핑 AST 검사](tools/check_identifier_refactor.py)와 차등 테스트로 별도 확인한다.
+
 | 항목 | 결과 |
 | --- | --- |
 | 원본 파일 | 530개 해시 일치, 원본 수정 없음 |
@@ -507,6 +511,8 @@ roslaunch --nodes foscar_bringup competition.launch drive:=false
 
 ## Windows 검증
 
+현재 이름 정리 이후의 검사는 아래 새 runner로 실행한다. 기존 바이트 보존·boundary 검사의 불일치는 실패로 남으며, 과거 JSON/manifest를 바꾸지 않는다. runner는 결과를 새 `verification/.work/identifier-refactor-*`에 저장한다. 반환값0은 필수 회귀 검사 통과이며 byte/boundary/preflight 실패 여부는 별도 로그에서 확인한다. 기존 검사의 당시 직접 실행 명령과 수치는 [verification.md](docs/verification.md)에 보존한다. `port_boundary.py --write`는 정리한 코드를 되돌릴 수 있으므로 실행하지 않는다.
+
 당시 Windows 개발 PC에는 WSL, Docker, `roscore`, `catkin_make`, `rospy`, `rclpy`가 없었다. 문서에 기록된 Ubuntu 시뮬 PC `192.168.1.2:22`는 연결 검사에서 3초 timeout이었다. 이것은 이전 검증 환경의 기록이며 현재 동아리 Ubuntu PC의 상태를 뜻하지 않는다.
 
 원본 고정 의존성과 같은 Python 3.10.11 검증 interpreter를 `.python310/`에 준비했다. 시스템 Python·PATH는 변경하지 않았다. 이 환경은 Git에서 제외하며 ROS1 설치를 대신하지 않는다. 다른 Windows PC에서는 아래로 같은 검증 환경을 재구성할 수 있다. 공식 Python 배포본 checksum을 검사하며 전체 검증 의존성은 별도 파일에 고정했다.
@@ -519,13 +525,8 @@ python -m pip --python ros1-port/.python310/python.exe install -r ros1-port/tool
 저장소 루트에서:
 
 ```powershell
-python ros1-port/tools/check_packaging.py
-python ros1-port/tools/port_boundary.py
-python ros1-port/verification/check_preservation.py
-ros1-port/.python310/python.exe -m unittest discover -s ros1-port/src/foscar_ros1/test -v
-ros1-port/.python310/python.exe ros1-port/verification/run_differential.py
-ros1-port/.python310/python.exe ros1-port/tools/check_model_equivalence.py
-python ros1-port/tools/preflight.py
+ros1-port/.python310/python.exe ros1-port/tools/check_identifier_refactor.py
+ros1-port/.python310/python.exe ros1-port/tools/run_refactor_checks.py
 ```
 
 `preflight.py`는 원본 README의 모델 해시 불일치를 탐지해 현재 실패한다. 이 검사를 삭제하거나 모델·README의 원본을 변경하지 않았다. [원본 문제 및 미검증 항목](docs/KNOWN_ISSUES.md)을 참조한다.

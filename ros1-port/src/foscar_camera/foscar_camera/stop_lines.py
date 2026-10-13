@@ -37,37 +37,37 @@ def default_routes():
 
 def load_stop_points(path: Path, default_go: Sequence[str]):
     """CSV (gps_logger 형식, x y 필수, go 선택) → [(x, y, go_colors)]."""
-    out = []
-    with Path(path).open(newline='') as f:
-        for row in csv.DictReader(f):
-            go = (tuple(c.strip().upper() for c in row['go'].split('|') if c.strip())
+    stop_points = []
+    with Path(path).open(newline='') as csv_stream:
+        for row in csv.DictReader(csv_stream):
+            go_colors = (tuple(color.strip().upper() for color in row['go'].split('|') if color.strip())
                   if row.get('go') else tuple(default_go))
-            out.append((float(row['x']), float(row['y']), go))
-    return out
+            stop_points.append((float(row['x']), float(row['y']), go_colors))
+    return stop_points
 
 
 def project_lines(points, route: Route, s_offset: float, max_lateral: float, logger=None) -> List[Line]:
     """차가 탄 경로에 투영. 경로에서 max_lateral 이상 떨어진 점은 버린다."""
     lines = []
-    for i, (x, y, go) in enumerate(points, 1):
-        s, lateral, _ = route.project(x, y)
+    for line_number, (x, y, go_colors) in enumerate(points, 1):
+        route_s, lateral, _ = route.project(x, y)
         if lateral > max_lateral:
             if logger:
-                logger.warn(f'정지선 #{i} ({x:.1f}, {y:.1f}) 는 이 경로에서 {lateral:.1f} m 떨어져 있어 제외')
+                logger.warn(f'정지선 #{line_number} ({x:.1f}, {y:.1f}) 는 이 경로에서 {lateral:.1f} m 떨어져 있어 제외')
             continue
-        lines.append(Line(s=float(s - s_offset), go_colors=go))
+        lines.append(Line(s=float(route_s - s_offset), go_colors=go_colors))
     return sorted(lines, key=lambda ln: ln.s)
 
 
 def select_route(x, y, global_points, spawn_points, tolerance=5.):
     """path_follower 의 core.select_route 와 같은 규칙 (전역 lap 우선, 아니면 spawn 연결로)."""
-    lap = Route(global_points)
-    if lap.project(x, y)[1] <= tolerance:
-        return lap, 0.
-    spawn = Route(spawn_points)
-    if spawn.project(x, y)[1] <= tolerance:
-        return spawn, float(spawn.s[-1] - lap.s[-1])
-    raise ValueError(f'차가 두 경로 모두에서 {min(lap.project(x, y)[1], spawn.project(x, y)[1]):.0f} m 떨어져 있음')
+    global_route = Route(global_points)
+    if global_route.project(x, y)[1] <= tolerance:
+        return global_route, 0.
+    spawn_route = Route(spawn_points)
+    if spawn_route.project(x, y)[1] <= tolerance:
+        return spawn_route, float(spawn_route.s[-1] - global_route.s[-1])
+    raise ValueError(f'차가 두 경로 모두에서 {min(global_route.project(x, y)[1], spawn_route.project(x, y)[1]):.0f} m 떨어져 있음')
 
 
 class StopLineTable:
@@ -84,8 +84,8 @@ class StopLineTable:
         if route == 'global':
             self.set_route(Route(self.global_points), 0.)
         elif route == 'spawn':
-            spawn = Route(self.spawn_points)
-            self.set_route(spawn, float(spawn.s[-1] - Route(self.global_points).s[-1]))
+            spawn_route = Route(self.spawn_points)
+            self.set_route(spawn_route, float(spawn_route.s[-1] - Route(self.global_points).s[-1]))
         elif route != 'auto':
             raise ValueError(f'route 는 auto|global|spawn: {route!r}')
 
@@ -104,12 +104,12 @@ class StopLineTable:
         if self.ready:
             return True
         try:
-            route, offset = select_route(x, y, self.global_points, self.spawn_points)
+            route, s_offset = select_route(x, y, self.global_points, self.spawn_points)
         except ValueError as e:
             if self.logger:
                 self.logger.warn(str(e), throttle_duration_sec=5.0)
             return False
-        self.set_route(route, offset)
+        self.set_route(route, s_offset)
         return True
 
     def next_line(self, s: float, margin: float = 0.) -> Optional[Line]:

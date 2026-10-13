@@ -19,15 +19,16 @@ def ray_box_evidence(origin, points, lower, upper, beyond_m=0.2):
     points = points[np.isfinite(points).all(axis=1)]
     direction = points - origin
     parallel = np.abs(direction) < 1e-10
-    safe = np.where(parallel, 1., direction)
-    a, b = (lower - origin) / safe, (upper - origin) / safe
-    near = np.where(parallel, -np.inf, np.minimum(a, b)).max(axis=1)
-    far = np.where(parallel, np.inf, np.maximum(a, b)).min(axis=1)
+    safe_direction = np.where(parallel, 1., direction)
+    # 교차 위치는 origin + t * direction의 t다. 실제 잔여 거리는 뒤에서 ray 길이를 곱한다.
+    lower_intersections, upper_intersections = (lower - origin) / safe_direction, (upper - origin) / safe_direction
+    entry_parameter = np.where(parallel, -np.inf, np.minimum(lower_intersections, upper_intersections)).max(axis=1)
+    exit_parameter = np.where(parallel, np.inf, np.maximum(lower_intersections, upper_intersections)).min(axis=1)
     outside_parallel = (parallel & ((origin < lower) | (origin > upper))).any(axis=1)
-    intersects = ~outside_parallel & (far > np.maximum(near, 0.))
+    intersects = ~outside_parallel & (exit_parameter > np.maximum(entry_parameter, 0.))
     occupied = ((points >= lower) & (points <= upper)).all(axis=1)
-    remaining = (1. - far) * np.linalg.norm(direction, axis=1)
-    through = intersects & (far > 0.) & (remaining > beyond_m) & ~occupied
+    distance_beyond_box = (1. - exit_parameter) * np.linalg.norm(direction, axis=1)
+    through = intersects & (exit_parameter > 0.) & (distance_beyond_box > beyond_m) & ~occupied
     return {'through': int(through.sum()), 'occupied': int(occupied.sum())}
 
 
@@ -46,10 +47,10 @@ def body_clearance(origin, points, center, length, width, yaw, top=1.8):
             or length<=0 or width<=0):return False
     points=points[np.isfinite(points).all(axis=1)]
     if len(points)<8:return False
-    c,s=np.cos(yaw),np.sin(yaw)
-    rotation=np.array([[c,-s],[s,c]])
-    local=points.copy();local[:,:2]=(local[:,:2]-center)@rotation
-    o=origin.copy();o[:2]=(o[:2]-center)@rotation
+    cos_yaw,sin_yaw=np.cos(yaw),np.sin(yaw)
+    rotation=np.array([[cos_yaw,-sin_yaw],[sin_yaw,cos_yaw]])
+    local_points=points.copy();local_points[:,:2]=(local_points[:,:2]-center)@rotation
+    local_origin=origin.copy();local_origin[:2]=(local_origin[:2]-center)@rotation
     # The torso bands end at the body's own top when it is lower (user 2026-10-09: rays over a 0.5-0.7 m tunnel
     # barricade, 0.8-1.1 m up at 20-26 m, cleared it while it stood there). A low body's bands start at half its
     # height, so rays through its lower half that land on the ground behind it clear it (a 0.44 m one-frame ghost
@@ -58,19 +59,19 @@ def body_clearance(origin, points, center, length, width, yaw, top=1.8):
     floor=min(.4,top/2)
     if top-floor<.2:return False
     lower=np.array([-length/2,-width/2,floor]);upper=np.array([length/2,width/2,top])
-    if np.any(np.all((local>=lower)&(local<=upper),axis=1)):return False
+    if np.any(np.all((local_points>=lower)&(local_points<=upper),axis=1)):return False
     # Filter angularly unrelated rays before testing the eight cells.
-    direction=local-o
-    distance=np.linalg.norm(o[:2]);radius=np.hypot(length,width)/2
+    direction=local_points-local_origin
+    distance=np.linalg.norm(local_origin[:2]);radius=np.hypot(length,width)/2
     if distance<=radius:return False
-    cosine=(direction[:,:2]@(-o[:2]))/np.maximum(1e-9,np.linalg.norm(direction[:,:2],axis=1)*distance)
-    local=local[cosine>=np.sqrt(max(0.,1-(radius/distance)**2))]
-    for xi in range(2):
-        for yi in range(2):
-            for zi in range(2):
-                lo=lower+(upper-lower)*np.array([xi,yi,zi])/2
-                hi=lo+(upper-lower)/2
-                evidence=ray_box_evidence(o,local,lo,hi)
+    cosine=(direction[:,:2]@(-local_origin[:2]))/np.maximum(1e-9,np.linalg.norm(direction[:,:2],axis=1)*distance)
+    local_points=local_points[cosine>=np.sqrt(max(0.,1-(radius/distance)**2))]
+    for x_cell in range(2):
+        for y_cell in range(2):
+            for z_cell in range(2):
+                cell_lower=lower+(upper-lower)*np.array([x_cell,y_cell,z_cell])/2
+                cell_upper=cell_lower+(upper-lower)/2
+                evidence=ray_box_evidence(local_origin,local_points,cell_lower,cell_upper)
                 if evidence['through']<2:return False
     return True
 
@@ -85,20 +86,20 @@ def lane_patch_clearance(origin, points, center, length, width, yaw):
     points=np.asarray(points,dtype=float).reshape(-1,3)
     points=points[np.isfinite(points).all(axis=1)]
     if len(points)<8:return False
-    c,s=np.cos(yaw),np.sin(yaw);rotation=np.array([[c,-s],[s,c]])
-    local=points.copy();local[:,:2]=(local[:,:2]-center)@rotation
-    o=np.asarray(origin,dtype=float).copy();o[:2]=(o[:2]-center)@rotation
-    inside=(abs(local[:,0])<=length/2)&(abs(local[:,1])<=width/2)
-    if np.any(inside&(local[:,2]>=.35)&(local[:,2]<=2.2)):return False
+    cos_yaw,sin_yaw=np.cos(yaw),np.sin(yaw);rotation=np.array([[cos_yaw,-sin_yaw],[sin_yaw,cos_yaw]])
+    local_points=points.copy();local_points[:,:2]=(local_points[:,:2]-center)@rotation
+    local_origin=np.asarray(origin,dtype=float).copy();local_origin[:2]=(local_origin[:2]-center)@rotation
+    inside=(abs(local_points[:,0])<=length/2)&(abs(local_points[:,1])<=width/2)
+    if np.any(inside&(local_points[:,2]>=.35)&(local_points[:,2]<=2.2)):return False
     # Only rays whose XY direction can intersect this patch need slab tests.
-    distance2=float(o[0]**2+o[1]**2);radius2=(length**2+width**2)/4
-    if distance2<=radius2:return False
-    direction=local[:,:2]-o[:2]
-    dot=-(direction[:,0]*o[0]+direction[:,1]*o[1])
-    cross=direction[:,0]*o[1]-direction[:,1]*o[0]
-    local=local[(dot>0)&(cross**2<=dot**2*radius2/(distance2-radius2))]
-    for u in (-length/2,0.):
-        for v in (-width/2,0.):
-            if ray_box_evidence(o,local,[u,v,.35],[u+length/2,v+width/2,1.25])['through']<2:
+    distance_squared=float(local_origin[0]**2+local_origin[1]**2);radius_squared=(length**2+width**2)/4
+    if distance_squared<=radius_squared:return False
+    direction=local_points[:,:2]-local_origin[:2]
+    dot=-(direction[:,0]*local_origin[0]+direction[:,1]*local_origin[1])
+    cross=direction[:,0]*local_origin[1]-direction[:,1]*local_origin[0]
+    local_points=local_points[(dot>0)&(cross**2<=dot**2*radius_squared/(distance_squared-radius_squared))]
+    for cell_x in (-length/2,0.):
+        for cell_y in (-width/2,0.):
+            if ray_box_evidence(local_origin,local_points,[cell_x,cell_y,.35],[cell_x+length/2,cell_y+width/2,1.25])['through']<2:
                 return False
     return True

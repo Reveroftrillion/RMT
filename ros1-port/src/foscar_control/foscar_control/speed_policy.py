@@ -10,8 +10,8 @@ def uncapped_highway_zones(filename):
     zones=[]
     for zone in config['zones']:
         if zone['name']!='HIGHWAY' or zone['speed_kmh'] is not None:continue
-        begin,end=float(zone.get('limit_start_s',zone['start_s'])),float(zone['end_s'])   # the checkpoint, not approach_s
-        if not all(math.isfinite(v) for v in (begin,end)) or begin>=end:
+        start_s,end_s=float(zone.get('limit_start_s',zone['start_s'])),float(zone['end_s'])   # 제한 시작은 checkpoint 기준이며 approach_s를 사용하지 않는다
+        if not all(math.isfinite(station) for station in (start_s,end_s)) or start_s>=end_s:
             raise ValueError('invalid highway speed checkpoints')
-        zones.append((begin,end))
+        zones.append((start_s,end_s))
     return zones

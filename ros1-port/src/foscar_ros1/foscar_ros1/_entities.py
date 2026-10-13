@@ -125,8 +125,9 @@ class Timer:
                 if self.timer_period_ns == 0:
                     self._next_call = now
                 else:
-                    ahead = now - self._next_call
-                    self._next_call += ((ahead + self.timer_period_ns - 1) //
+                    # 이미 지난 deadline을 기존 정수 올림 계산으로 다음 주기에 맞춘다.
+                    overdue_ns = now - self._next_call
+                    self._next_call += ((overdue_ns + self.timer_period_ns - 1) //
                                         self.timer_period_ns) * self.timer_period_ns
             return ()
 
