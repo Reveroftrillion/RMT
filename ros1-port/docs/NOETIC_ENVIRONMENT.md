@@ -1,5 +1,8 @@
 # Python 3.10 기반 Noetic 배포 환경
 
+Ubuntu MORAI PC용 격리 재현 구현은 [Docker 안내](../docker/README.md), 실제 실행 결과는
+[Linux Docker 검증 기록](NOETIC_DOCKER_VALIDATION.md)에 있다. 호스트 Python/Noetic을 재사용하지 않는다.
+
 사용자 선택은 **원본 의존성 유지 + CPython 3.10 기반 ROS1 Noetic**이다. 원본의 `numpy==1.24.4`, `onnxruntime-gpu==1.23.2`를 유지한다. 원본 requirements 파일과 모델은 변경하지 않는다. [ONNX Runtime GPU 1.23.2 공식 배포 정보](https://pypi.org/project/onnxruntime-gpu/1.23.2/)는 Python 3.10 이상을 요구한다.
 
 Ubuntu 20.04의 기본 Noetic 바이너리는 보통 Python 3.8용이다. `PYTHON_EXECUTABLE`만 3.10으로 지정하면 이미 설치된 네이티브 확장 모듈의 ABI가 바뀌지 않는다. CPython 3.10에 맞춘 Noetic underlay와 네이티브 의존성을 먼저 준비해야 한다. 특히 `tf2_py`/`tf2_ros`, NumPy, SciPy, scikit-learn, OpenCV, pyproj를 실제 3.10 인터프리터에서 import해야 한다. `cv_bridge`는 현재 competition 코드에서 사용하지 않지만 설치·사용한다면 동일한 인터프리터에 맞춰 빌드해야 한다.
