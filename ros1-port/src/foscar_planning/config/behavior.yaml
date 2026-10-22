@@ -63,6 +63,7 @@ behavior_node:
     avoid.transition_time_s: 1.5    # tracker 전이 곡선 시간 — low_speed.yaml transition_time_s 와 같게
     avoid.transition_min_m: 6.0     # tracker 전이 곡선 최소 길이 — low_speed.yaml transition_min_m 와 같게
     avoid.slalom_planner: simple    # 터널 회피: 무리마다 좌/우 선택 + 점 검사 (tunnel_simple.py, 2026-10-10)
+    avoid.static_course: true      # supplied SCMC fixed box: map-checked entry/return, live BEV and signal braking
     # 회피 중 가속: 출발 실측 3.3 m/s² 그대로 (0.3 -> 1.5 램프는 다음 장애물을 늦게 보던 시절의 돌진 방지, 지금은
     # 곡선 앞 approach_speed·BEV guard 가 맡는다; 사용자 2026-10-11: 직선에서 너무 느리다)
     avoid.hold_ramp_mps2: 3.3

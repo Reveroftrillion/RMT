@@ -33,6 +33,7 @@ from ..mapped_avoidance import paved_offset, paved_moves
 from ..avoid_planner import Plan as AvoidPlan
 from .. import tunnel_slalom, tunnel_simple
 from ..bev_avoidance import BevAvoidance
+from ..static_course import StaticCourse
 
 
 @dataclass
@@ -121,6 +122,7 @@ class Avoid(BehaviorState):
         # 'simple': a side per obstacle group, the car as a point among grown boxes (tunnel_simple.py, bounded time);
         # 'search': every offset x curve length x start with body sweeps (tunnel_slalom.plan)
         'slalom_planner': 'search',
+        'static_course': False,    # supplied SCMC route/box prior; actual BEV/signal guards remain
         'slowdown_replan': .75,        # below this fraction of the planning speed the curves are made again
         'tunnel_match_m': .6,          # a piece this close (plus the per-metre range term laterally) is that barricade
         'tunnel_match_per_m': .05,     # dead-reckoned heading error ~3 deg: lateral spread grows with range
@@ -178,6 +180,7 @@ class Avoid(BehaviorState):
         self.static_planner = copy(self.planner)
         self.static_planner.d_max = self.tunnel_planner.d_max  # same controller range, bounded by mapped pavement
         self.bev = None
+        self.course = StaticCourse()
         self.memory: List[Remembered] = []
         self.dynamic: List[tuple] = []   # (s, d, 마지막 관측 시각) — 최근 움직임이 있던 자리
         self.prev_d = 0.
@@ -713,6 +716,19 @@ class Avoid(BehaviorState):
         groups = (tunnel_slalom.group_boxes(self.boxes(), lambda b: b.s_max, 0., 0.,
                                             0., lambda g: max(b.s_min for b in g) <= min(b.s_max for b in g))
                   if self.memory else [])
+        if static_mission:
+            # A monotone quintic stays between its endpoint offsets. Even a
+            # fully rotated body cannot reach furniture beyond this radius.
+            # Keep all evidence/BEV cells; prune only impossible planning stages.
+            offsets = [d_now, self.prev_d, self.start_offset, -planner.d_max, planner.d_max]
+            if self.slalom is not None:
+                offsets.extend(self.slalom.offsets)
+                offsets.append(self.slalom_origin)
+            radius = math.hypot(max(self.front_m, self.rear_overhang_m), planner.half)
+            if all(math.isfinite(d) for d in offsets):
+                lo, hi = min(offsets)-radius, max(offsets)+radius
+                groups = [[b for b in g if b.d_min <= hi and b.d_max >= lo] for g in groups]
+                groups = [g for g in groups if g]
         held = self.slalom
         # Slowed down well below the speed the plan was made at: every curve, the one under way included,
         # is planned again for the speed now (user 2026-09-29: curves made fast stayed long).
@@ -1020,17 +1036,24 @@ class Avoid(BehaviorState):
 
     def _compute_target(self, ctx: Context) -> Target:
         if ctx.mission_name in ('TUNNEL', 'STATIC_OBSTACLE'):
+            if self.static_course:
+                fixed = self.course.target(ctx, self)
+                if fixed is not None:
+                    return fixed
             if ctx.mission_name == 'STATIC_OBSTACLE' and not self.lateral_started and math.isfinite(ctx.lateral_hold_s) and ctx.s < ctx.lateral_hold_s:
                 self.plan = self.path_planner(ctx).plan(self.boxes(), ctx.s, self.prev_d)
-                self.held_at_line = True
-                room = max(self.transition_min_m, self.plan.nearest_s-self.front_m-self.entry_buffer_m-ctx.lateral_hold_s)
-                shift = abs(self.plan.d-self.start_offset)
-                fit = (0. if self.plan.blocked or self.swerve_curvature(room, shift) > self.max_curvature_per_m
-                       else self.swerve_speed(room, shift))
-                # A future turn constrains speed at its start, not along the entire approach.
-                # An infeasible turn requires reaching the hold at rest, never a fixed crawl.
-                cap = math.sqrt(fit*fit + 2.*self.slalom_decel_mps2*(ctx.lateral_hold_s-ctx.s))
-                return Target(state=self.name, v_max=cap)
+                # A later intersection cannot postpone passing an earlier box.
+                # lateral_hold_s advances to the next line after the current one.
+                if ctx.lateral_hold_s < self.plan.nearest_s:
+                    self.held_at_line = True
+                    room = max(self.transition_min_m, self.plan.nearest_s-self.front_m-self.entry_buffer_m-ctx.lateral_hold_s)
+                    shift = abs(self.plan.d-self.start_offset)
+                    fit = (0. if self.plan.blocked or self.swerve_curvature(room, shift) > self.max_curvature_per_m
+                           else self.swerve_speed(room, shift))
+                    # A future turn constrains speed at its start, not along the entire approach.
+                    # An infeasible turn requires reaching the hold at rest, never a fixed crawl.
+                    cap = math.sqrt(fit*fit + 2.*self.slalom_decel_mps2*(ctx.lateral_hold_s-ctx.s))
+                    return Target(state=self.name, v_max=cap)
             return self.obstacle_target(ctx)
         if not self.memory and self.lateral_started and self.return_start_s is not None:
             return Target(state=self.name, lat_offset=self.prev_d, v_max=self.held_speed(ctx),

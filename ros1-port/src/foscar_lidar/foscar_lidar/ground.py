@@ -1,7 +1,8 @@
 """Conservative local road-plane estimate for ground removal during body tilt.
 
 Only a broad, dominant, near-ground surface is accepted. Missing support falls
-back to the original fixed-height filter; no plane is extrapolated past 28 m.
+back to the original fixed-height filter. The generic window ends at 28 m;
+tunnel material support can validate a continuation within the existing ROI.
 """
 
 import numpy as np
@@ -47,10 +48,72 @@ def estimate_ground_plane(points):
     return plane
 
 
-def relative_height(points, plane):
+def estimate_material_ground_plane(points, ground_mask):
+    """Tunnel fallback using returns already classified as asphalt by material.
+
+    A different sensor height reference can put the road above the generic
+    estimator's intercept guard. Centre only the existing asphalt returns;
+    retain its slope, support count, dominance and spatial-extent checks.
+    The input height window stays the same as the generic estimator. Without
+    enough broad material support, keep its original fixed-height fallback.
+    """
+    points = np.asarray(points, dtype=float).reshape(-1, 3)
+    mask = np.asarray(ground_mask, dtype=bool)
+    support = points[mask & np.isfinite(points).all(axis=1) & region(points)
+                     & (points[:, 2] > -.8) & (points[:, 2] < 1.2)].copy()
+    if not len(support):
+        return None
+    reference_z = np.median(support[:, 2])
+    support[:, 2] -= reference_z
+    plane = estimate_ground_plane(support)
+    if plane is not None:
+        plane[2] += reference_z
+    return plane
+
+
+def material_height_region(points, plane, ground_mask, max_x, max_y=5.):
+    """Validate tunnel ground correction inside the observed asphalt hull.
+
+    The generic window remains the fallback. Same-scan material support must
+    satisfy the existing estimator's count, residual, dominance and spatial
+    extent requirements. Additional support must be broad too. This follows
+    a curved road beyond the fixed rectangle without extrapolating the plane
+    outside observed material or enlarging the obstacle ROI.
+    """
+    points = np.asarray(points)
+    supported = region(points)
+    if plane is None:
+        return supported
+    roi = (np.isfinite(points).all(axis=1) & (points[:, 0] > 3.) & (points[:, 0] < max_x)
+           & (np.abs(points[:, 1]) < max_y))
+    candidates = points[np.asarray(ground_mask, dtype=bool) & roi
+                        & (points[:, 2] > -.8) & (points[:, 2] < 1.2)]
+    if len(candidates) < 150:
+        return supported
+    agrees = np.abs(candidates[:, 2] - candidates[:, :2] @ plane[:2] - plane[2]) < .12
+    evidence = candidates[agrees]
+    if (len(evidence) < max(120, .6 * len(candidates))
+            or np.ptp(evidence[:, 0]) < 8. or np.ptp(evidence[:, 1]) < 3.):
+        return supported
+    extra_support = evidence[~region(evidence)]
+    if len(extra_support) < 3 or np.ptp(extra_support[:, 1]) < 3.:
+        return supported
+    from scipy.spatial import ConvexHull, QhullError
+    try:
+        hull = ConvexHull(evidence[:, :2])
+    except QhullError:
+        return supported
+    extra = np.flatnonzero(roi & ~supported)
+    supported[extra] = np.all(points[extra, :2] @ hull.equations[:, :2].T
+                              + hull.equations[:, 2] <= 1e-9, axis=1)
+    return supported
+
+
+def relative_height(points, plane, supported=None):
     points = np.asarray(points)
     height = points[:, 2].copy()
     if plane is not None:
-        supported = region(points)
+        if supported is None:
+            supported = region(points)
         height[supported] -= points[supported, :2] @ plane[:2] + plane[2]
     return height

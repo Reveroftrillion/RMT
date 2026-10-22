@@ -69,6 +69,20 @@ def test_without_a_stop_line_the_normal_entry_is_unchanged():
     assert free.lateral_started and t.lat_offset != 0. and t.entry_s < HOLD
 
 
+def test_next_signal_behind_the_box_does_not_postpone_avoidance():
+    # Full-course collision 2026-10-21: after line 2, lateral_hold_s selected
+    # line 3 (430.9174), beyond the box at ~329. It kept the target at offset 0.
+    avoid = Avoid(entry_buffer_m=0.5)
+    c = ctx(HOLD+.2, 1., 1., hold=430.9174)
+    assert avoid.check_entry(c)
+    target = avoid.compute_target(c)
+    assert avoid.lateral_started
+    assert target.lat_offset != 0.
+    end = max(st+length for _, st, length in target.chain)
+    assert first_hit(avoid.boxes(), target.chain, avoid.slalom_origin, c.s, end,
+                     avoid.front_m, avoid.rear_overhang_m, avoid.static_planner.half) is None
+
+
 def test_confirmed_go_releases_the_hold_but_stop_colours_keep_it():
     from foscar_planning.signal_stop import SignalStopPolicy
     line = dict(id='intersection_02', start_s=271.99, stop_rear_s=HOLD, maneuver='straight', roi=[0, 0, 1, 1])

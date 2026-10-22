@@ -17,6 +17,7 @@ from std_msgs.msg import String
 from foscar_interfaces.msg import ControlCommand, DrivingTarget, VehicleStatus
 
 from .core import Controller, Output, Route, Target, quaternion_yaw, select_route, wrap
+from .route_start import start_station_hint
 
 
 from .telemetry import control_telemetry
@@ -78,7 +79,7 @@ class Follower(Node):
         super().__init__('path_follower')
         # route: 'auto' picks global/spawn from where the car is at launch; s is always global-route s.
         defaults = dict(path_file='', spawn_file='', route='auto', speed_kmh=5., speed_policy_file='', test_distance_m=20.,
-                        lookahead_m=3., continuous=False,
+                        lookahead_m=3., continuous=False, start_at_beginning=False,
                         require_target=False, target_timeout=0.5,
                         max_cross_track_m=1.5, sensor_timeout=1.5, a_lat_mps2=2.5, decel_mps2=1.5,
                         dr_speed_kmh=0., hold_brake=0.15, transition_time_s=1.5, return_time_s=2.0, transition_min_m=6.,
@@ -90,7 +91,7 @@ class Follower(Node):
         self.global_points = np.loadtxt(self.p['path_file'])
         self.spawn_points = np.loadtxt(self.p['spawn_file']) if self.p['spawn_file'] else self.global_points
         self.route = self.controller = None      # built on the first pose (route:=auto needs it)
-        if self.p['route'] != 'auto':
+        if self.p['route'] != 'auto' and not self.p['start_at_beginning']:
             self.build_controller()
         self.odom = self.status = None
         self.arrivals = dict(odom=0., status=0.)
@@ -135,6 +136,8 @@ class Follower(Node):
             s_offset = float(self.route.s[-1]-Route(self.global_points).s[-1])
         else:
             self.route, s_offset = select_route(x, y, self.global_points, self.spawn_points)
+        hint = start_station_hint(self.route, x, y, self.p['start_at_beginning'],
+                                  FilePath(self.p['path_file']).with_name('checkpoints.txt'))
         self.route = self.with_runout(self.route)
         self.controller = Controller(self.route, self.p['speed_kmh'], self.p['test_distance_m'],
                                      self.p['lookahead_m'], self.p['max_cross_track_m'], self.p['continuous'],
@@ -152,6 +155,7 @@ class Follower(Node):
                                      steer_predict_s=self.p['steer_predict_s'],
                                      reference_lateral_ki=None if self.p['reference_lateral_ki'] < 0 else self.p['reference_lateral_ki'],
                                      reference_steer_predict_s=None if self.p['reference_steer_predict_s'] < 0 else self.p['reference_steer_predict_s'])
+        self.controller.previous = hint
         profile = self.controller.profile
         self.get_logger().info(f'route {len(self.route.points)} points / {self.route.s[-1]:.1f}m, global-s offset '
                                f'{s_offset:.1f}m; profile {profile.min()*3.6:.1f}-{profile.max()*3.6:.1f} km/h')

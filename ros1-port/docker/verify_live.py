@@ -45,6 +45,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--seconds', type=float, default=40)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--launch-file', type=Path, default=PORT / 'docker/local.launch')
     parser.add_argument('--kill-node', help='test required-node shutdown using rosnode kill')
     parser.add_argument('--kill-after', type=float, default=8.)
     args = parser.parse_args()
@@ -114,7 +115,7 @@ def main():
                 report['errors'].append(error)
 
     with launch_log.open('w') as log:
-        child = subprocess.Popen(['roslaunch', str(PORT / 'docker/local.launch'), 'drive:=false'],
+        child = subprocess.Popen(['roslaunch', str(args.launch_file.resolve()), 'drive:=false'],
                                  stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         try:
             deadline = time.monotonic() + 20

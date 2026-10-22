@@ -55,7 +55,7 @@ import uuid
 from collections import deque
 from time import perf_counter
 
-from .ground import estimate_ground_plane, relative_height
+from .ground import estimate_ground_plane, estimate_material_ground_plane, material_height_region, relative_height
 from .sight import blind_bands, pitch_deg
 
 import numpy as np
@@ -825,6 +825,14 @@ class ObstacleNode(Node):
         if pitch:
             pts[:, 2] -= (pts[:, 0]-self.lidar_x)*math.tan(math.radians(pitch))
         plane = estimate_ground_plane(pts)
+        height_region = None
+        if plane is None and (filter_zero or (owned and has_int and self.mission_name in ('STATIC_OBSTACLE', 'PEDESTRIAN'))):
+            # Recorded static/pedestrian asphalt has the same elevated reference
+            # as the tunnel. Correct height only with broad same-scan material
+            # support; keep non-tunnel returns and the clustering policy.
+            asphalt = (raw[:, 3] >= self.road_intensity_min) & (raw[:, 3] <= self.road_intensity_max)
+            plane = estimate_material_ground_plane(pts, asphalt)
+            height_region = material_height_region(pts, plane, asphalt, self.roi_x_max, self.roi_y_abs)
         # Highway: how far ahead a car body is still met by a ring at this scan's pitch (sight.py). A blind stretch
         # reaching the end of the ROI means a car can come up unseen: the sight ends where it starts.
         self.sight=None
@@ -833,7 +841,7 @@ class ObstacleNode(Node):
             bands=blind_bands(plane,self.lidar_x,self.lidar_z,body_high=self.highway_car_top_m,far=far)
             reach=min([lo for lo,hi in bands if hi>=far-.5],default=far)
             self.sight=dict(pitch_deg=round(pitch_deg(plane),3),range_m=round(reach,1),plane=plane is not None)
-        pts[:, 2] = relative_height(pts, plane)
+        pts[:, 2] = relative_height(pts, plane, height_region)
         self.raw_clearance_points=pts.copy()
         origin=self.lidar_to_base(np.zeros((1,3)),msg.header.frame_id,self.get_clock().now())
         origin[:,2]=relative_height(origin,plane)

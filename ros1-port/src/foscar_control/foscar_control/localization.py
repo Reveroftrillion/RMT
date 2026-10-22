@@ -33,6 +33,8 @@ from tf2_ros import TransformBroadcaster
 from foscar_interfaces.msg import VehicleStatus
 
 from .core import PoseEstimator, quaternion_yaw, select_route, wrap
+from .route_start import start_station_hint
+from pathlib import Path as FilePath
 
 
 class Localization(Node):
@@ -41,7 +43,7 @@ class Localization(Node):
         defaults = dict(origin_east=302595., origin_north=4124145., gps_offset_x=0.,
                         gps_offset_y=0., imu_yaw_offset_deg=0., sensor_timeout=1.5,
                         gps_timeout=0.3, gps_blend_s=2.0, gps_frozen_s=0.5, stale_hold_s=0.3,
-                        path_file='', spawn_file='')
+                        path_file='', spawn_file='', start_at_beginning=False)
         self.p = {k: self.declare_parameter(k, v).value for k, v in defaults.items()}
         self.transformer = Transformer.from_crs(4326, 32652, always_xy=True)
         # MORAI 의 IMU yaw 는 진북 기준, 우리 map(x, y) 는 UTM52 격자북 기준이라 자오선 수차만큼 어긋난다.
@@ -165,7 +167,10 @@ class Localization(Node):
             self.last_mode_pub = now
         if self.route is None and self.global_points is not None:
             try:
-                self.route, self.s_offset = select_route(x, y, self.global_points, self.spawn_points)
+                route, offset = select_route(x, y, self.global_points, self.spawn_points)
+                hint = start_station_hint(route, x, y, self.p['start_at_beginning'],
+                                          FilePath(self.p['path_file']).with_name('checkpoints.txt'))
+                self.route, self.s_offset, self.previous_s = route, offset, hint
             except ValueError:
                 pass
         if self.route is not None:

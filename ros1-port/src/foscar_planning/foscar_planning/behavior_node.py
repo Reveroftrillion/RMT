@@ -101,6 +101,7 @@ class BehaviorNode(Node):
     def __init__(self):
         super().__init__('behavior_node')
         p = self.declare_parameter
+        self.start_at_beginning = p('start_at_beginning', False).value
         # 런치에서 넘기기 쉽게 문자열 "cruise,avoid,tunnel" 로 받는다
         names = [n.strip() for n in str(p('states', 'cruise,avoid,yield,tunnel').value).split(',') if n.strip()]
         self.rate = p('rate_hz', 20.).value
@@ -946,7 +947,8 @@ class BehaviorNode(Node):
         if self.route is None or self.s_global is None:
             return None
         if self.s_offset is None:
-            self.s_offset = s_offset_from(self.route, x, y, self.s_global)
+            self.s_offset = (0. if getattr(self, 'start_at_beginning', False)
+                             else s_offset_from(self.route, x, y, self.s_global))
             self.get_logger().info(f'global-s offset {self.s_offset:.1f} m')
         return self.s_global + self.s_offset
 
