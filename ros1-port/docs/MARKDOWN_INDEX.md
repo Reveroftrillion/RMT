@@ -1,5 +1,22 @@
 # Markdown 분류와 사용 기준
 
+## 2026-10-22 현재 안내
+
+- [최신 실제 성공·미해결·미검증](CURRENT_STATUS_2026-10-22.md)
+- [현재 개발 계획](DEVELOPMENT_WORKFLOW.md)
+- [루트 README](../../README.md) · [ROS1 실행](../README.md) · [Docker 환경](../docker/README.md)
+- [최신 수동 bag 요약](verification-20261022/manual-course-summary.json)
+- [알고리즘/native 검사 요약](verification-20261022/checks-summary.json)
+- [오른쪽 정적·보행자 수정](RIGHT_STATIC_PEDESTRIAN_2026-10-22.md)
+- [터널 정지·터미널 출력](CONSOLE_TUNNEL_RECHECK_2026-10-22.md)
+- [이전 감독 시험](FULL_COURSE_AUDIT_2026-10-22.md)
+- [파일별 미션](FILE_MISSIONS_2026-10-22.md) · [미사용 정리](UNUSED_FILE_CLEANUP_2026-10-22.md)
+
+현재 README·계획의 이전 원문은 history/*.txt로 보존했다. 해당 원문의
+상대 경로는 원래 파일 위치 문맥으로 읽는다. 아래 10/13 분류·파일 수·검사
+수치는 당시 결과이며 새 문서 추가 후 현재 합계를 뜻하지 않는다.
+
+
 2026-10-13 저장소의 Markdown 경로와 본문/제목을 조사한 목록이다. Git 추적 문서와 이번 신규 문서를 포함하며,
 ignored 환경·build·artifact 사본은 제외한다. 경로별 분류는 용도를 뜻하며 과거 원문의 이력·작성자·역할·출처를 고치지 않는다.
 

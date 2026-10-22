@@ -14,7 +14,7 @@
 ```bash
 cd /home/foscar/RMT-ros1
 bash ros1-port/docker/build.sh
-bash ros1-port/docker/build_workspace.sh
+bash ros1-port/docker/run.sh bash docker/build_workspace.sh
 ```
 
 첫 명령은 Docker 이미지·GPU/underlay 준비 조건이 필요하며 네트워크 다운로드를
@@ -110,3 +110,9 @@ YOLO JSONL은 기존 임시 경로가 남아 있어 이 래퍼가 영구 보존�
 [이전 안내 원문](docs/history/ROS1_README_before_2026-10-22.txt)에 보존했다.
 해당 원문의 링크/명령은 당시 ros1-port/README.md 위치 문맥이며 현재 실행 지침과 구분한다.
 원본 출처·작성자·라이선스는 각 소스/패키지의 선언을 유지한다.
+
+<a id="2026-10-13-morai-실행과-다음-작업-인계"></a>
+<a id="빌드와-실행"></a>
+
+과거 문서의 실행/빌드 앵커는 호환성을 위해 유지한다. 현재 명령은 위 환경
+구축·시작점 실행 절을 따르고, 10/13 당시 상세 기록은 이전 안내 원문을 참고한다.

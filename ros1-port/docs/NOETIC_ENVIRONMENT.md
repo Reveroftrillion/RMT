@@ -1,5 +1,10 @@
 # Python 3.10 기반 Noetic 배포 환경
 
+2026-10-22 실제 완주/현재 실패 범위는 [현재 상태](CURRENT_STATUS_2026-10-22.md),
+새 수동 실행은 [ROS1 README](../README.md)를 따른다. 격리 build/install은
+성공했지만 리소스 SHA/원본 비교 검사 실패는 남아 있다. 아래 배포 절차를
+실행했다고 그 검사나 모든 미션이 통과한 것으로 판정하지 않는다.
+
 Ubuntu MORAI PC용 격리 재현 구현은 [Docker 안내](../docker/README.md), 실제 실행 결과는
 [Linux Docker 검증 기록](NOETIC_DOCKER_VALIDATION.md)에 있다. 호스트 Python/Noetic을 재사용하지 않는다.
 
