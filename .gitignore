@@ -17,3 +17,7 @@ venv/
 *.log
 .deps/
 node_modules/
+
+# ROS bag outputs stay local, including recordings outside docker/artifacts.
+*.bag
+*.bag.active
