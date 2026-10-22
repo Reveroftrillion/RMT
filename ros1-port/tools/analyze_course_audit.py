@@ -61,8 +61,10 @@ def main():
     for gap in gaps:
         gap.update(raw_frames=sum(gap['start']<=v<=gap['end'] for v in camera),debug_frames=sum(gap['start']<=v<=gap['end'] for v in debug))
     follower=[]
-    for p in (args.run/'home/foscar_logs').glob('follow*'):
-        follower+=list(csv.DictReader(p.open()))
+    for directory in (args.run/'home/foscar_logs', args.run/'ros-logs/follower'):
+        for p in directory.glob('follow*.csv'):
+            with p.open() as stream:
+                follower+=list(csv.DictReader(stream))
     valid=[r for r in follower if r['s_m'] and r['x'] and r['state']!='WAITING']
     stops=[];i=0
     while i<len(valid):
