@@ -71,7 +71,7 @@ def estimate_material_ground_plane(points, ground_mask):
     return plane
 
 
-def material_height_region(points, plane, ground_mask, max_x, max_y=5.):
+def material_height_region(points, plane, ground_mask, max_x, max_y=5., additional_mask=None):
     """Validate tunnel ground correction inside the observed asphalt hull.
 
     The generic window remains the fallback. Same-scan material support must
@@ -98,6 +98,14 @@ def material_height_region(points, plane, ground_mask, max_x, max_y=5.):
     extra_support = evidence[~region(evidence)]
     if len(extra_support) < 3 or np.ptp(extra_support[:, 1]) < 3.:
         return supported
+    # Keep asphalt as the plane/support anchor. Low lane-paint observations may
+    # support its edge only after the original broad-asphalt checks above.
+    # The same residual and height window reject elevated reflective objects.
+    if additional_mask is not None:
+        extra_material = points[np.asarray(additional_mask, dtype=bool) & roi
+                                & (points[:, 2] > -.8) & (points[:, 2] < 1.2)]
+        agrees = np.abs(extra_material[:, 2] - extra_material[:, :2] @ plane[:2] - plane[2]) < .12
+        evidence = np.vstack((evidence, extra_material[agrees]))
     from scipy.spatial import ConvexHull, QhullError
     try:
         hull = ConvexHull(evidence[:, :2])
