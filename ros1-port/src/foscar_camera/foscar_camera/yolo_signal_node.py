@@ -5,6 +5,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import foscar_ros1 as rclpy
+from foscar_ros1.executors import ExternalShutdownException
 from foscar_ros1.node import Node
 from foscar_ros1.qos import qos_profile_sensor_data
 from sensor_msgs.msg import CompressedImage
@@ -91,5 +92,5 @@ class YoloSignalNode(Node):
 def main(args=None):
     rclpy.init(args=args);node=YoloSignalNode()
     try:rclpy.spin(node)
-    except KeyboardInterrupt:pass
+    except (KeyboardInterrupt, ExternalShutdownException):pass
     finally:node.destroy_node();rclpy.shutdown()

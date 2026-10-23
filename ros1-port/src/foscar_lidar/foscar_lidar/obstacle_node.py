@@ -826,8 +826,8 @@ class ObstacleNode(Node):
             pts[:, 2] -= (pts[:, 0]-self.lidar_x)*math.tan(math.radians(pitch))
         plane = estimate_ground_plane(pts)
         height_region = None
-        if plane is None and (filter_zero or (owned and has_int and self.mission_name in ('STATIC_OBSTACLE', 'PEDESTRIAN'))):
-            # Recorded static/pedestrian asphalt has the same elevated reference
+        if plane is None and (filter_zero or (owned and has_int and self.mission_name in ('STATIC_OBSTACLE', 'PEDESTRIAN', 'ROUNDABOUT'))):
+            # Recorded static/pedestrian/roundabout asphalt has the same elevated reference
             # as the tunnel. Correct height only with broad same-scan material
             # support; keep non-tunnel returns and the clustering policy.
             asphalt = (raw[:, 3] >= self.road_intensity_min) & (raw[:, 3] <= self.road_intensity_max)
