@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import runpy
 import signal
+import shutil
 import socket
 import struct
 import subprocess
@@ -63,9 +64,9 @@ def main():
     out = args.output_dir.resolve()
     out.mkdir(parents=True, exist_ok=False)
     (out/'frames').mkdir()
-    child_env = dict(os.environ, HOME=str(out/'home'), ROS_HOME=str(out/'home/.ros'),
+    child_env = dict(os.environ, ROS_HOME=str(out/'ros-home'),
                      ROS_LOG_DIR=str(out/'ros-logs'))
-    Path(child_env['HOME']).mkdir()
+    Path(child_env['ROS_HOME']).mkdir()
     settings = dict(max_seconds=args.max_seconds, stall_seconds=args.stall_seconds, stop_at_s=args.stop_at_s,
                     drive=True, topics=TOPICS, departure_route_m=8.,
                     departure_outside_map_route_m=3.5, departure_duration_s=1.,
@@ -74,6 +75,10 @@ def main():
     frozen = manifest()
     (out/'source-before.json').write_text(json.dumps(frozen, indent=2)+'\n')
     try:
+        # Reserve more than the recorded 1.77 GB baseline trial before enabling
+        # controls. This guards the observer's storage, not vehicle behavior.
+        if shutil.disk_usage(out).free < 10 * 1024**3:
+            raise RuntimeError('recording disk reserve below 10 GiB')
         xmlrpc.client.ServerProxy('http://127.0.0.1:11311').getUri('/course_preflight')
     except OSError:
         pass
@@ -265,6 +270,26 @@ def main():
         time.sleep(2.)
         if recorder.poll() is not None:
             raise RuntimeError('recorder exited before control launch')
+        readiness = None
+        deadline = time.time()+10.
+        while time.time() < deadline and not stopped.is_set():
+            now = time.time()
+            with lock:
+                parked = manual_park_evidence(status_samples, started, now)
+                collision_fresh = now-wire_received.get('9092', 0.) < 1.
+                alarm = collision_event or callback_errors
+            bags = list(out.glob('diagnostics*.bag.active'))
+            if alarm or recorder.poll() is not None:
+                raise RuntimeError('pre-control capture or recorder failure')
+            if parked and collision_fresh and bags and all(p.stat().st_size > 0 for p in bags):
+                readiness = dict(time=now, stationary_manual_park=parked,
+                    collision_fresh=True, active_bags=[str(p) for p in bags],
+                    disk_free_bytes=shutil.disk_usage(out).free)
+                break
+            time.sleep(.1)
+        if not readiness:
+            raise RuntimeError('pre-control recording / fresh Manual-P readiness failed')
+        (out/'recording-readiness.json').write_text(json.dumps(readiness, indent=2)+'\n')
         launch = spawn(['roslaunch', str(args.launch_file.resolve()), 'drive:=true', 'bag:=false'], 'launch.log')
         (out/'pids.json').write_text(json.dumps(dict(supervisor=os.getpid(), launch=launch.pid,
             recorder=recorder.pid, master=master.pid))+'\n')
@@ -330,6 +355,8 @@ def main():
                     reason = 'observer_error'; break
                 if launch.poll() is not None or recorder.poll() is not None:
                     reason = 'launch_or_recorder_exited'; break
+                if shutil.disk_usage(out).free < 2 * 1024**3:
+                    reason = 'recording_disk_reserve_low'; break
                 if 'FINISH' in str(latest.get('/control/state', {}).get('data', '')):
                     reason = 'follower_finish'; break
                 if max_s >= args.stop_at_s:

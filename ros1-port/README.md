@@ -1,9 +1,10 @@
 # ROS1 / MORAI 실행 안내
 
 현재 상태와 미션별 결과는 [루트 README](../README.md),
-[최신 검증 범위](docs/CURRENT_STATUS_2026-10-22.md)를 먼저 확인한다.
-2026-10-22 오른쪽 정적·보행자 수정본의 사용자 전체 코스 FINISH를 bag으로 확인했다.
-직전 터널 정지와 공식 감점/무충돌/종료 인계의 미확인 범위는 그대로 남아 있다.
+[최신 검증 범위](docs/STABILITY_AUDIT_2026-10-22.md)를 먼저 확인한다.
+2026-10-22 동일 sample_scene 감독 시험2회에서 CP 전체·END·충돌 채널 유효 충돌0·
+정지/Manual/P를 확인했다. [최신 반복 시험](docs/STABILITY_AUDIT_2026-10-22.md)을 참고한다.
+이전 수동 bag의 FINISH와 구분하며, 터널 이전 실패·공식 차선 감점·변형 조건은 남아 있다.
 
 ## 환경 구축
 
@@ -60,7 +61,8 @@ bash ros1-port/docker/run_course.sh drive:=true bag:=true
 기동 직후 출발 가능. 직접 실행에는 충돌·이탈·무진행 자동 종료 감독이 없다.
 감독 시험은 [audit_course.py](docker/audit_course.py)와
 [기존 감독 조건](docs/FULL_COURSE_AUDIT_2026-10-22.md)을 사용한다.
-이 문서 작업에서 실제 주행을 시작하지 않았다.
+이번 반복 시험의 영구 YOLO/follower 로그를 포함한 준비·감독 명령은
+[최신 재현 안내](docs/STABILITY_AUDIT_2026-10-22.md#기록재현복구)를 따른다.
 
 현재 실행은 START 반경3m 안의 첫 랩 전용이다. 정확히 같은 좌표 하나를
 요구하지 않지만 반경 밖에서 s0을 강제로 부여하지 않는다. 실패 시 원래
