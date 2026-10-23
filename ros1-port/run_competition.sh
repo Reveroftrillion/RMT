@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ROS1 counterpart of 2026foscar-competition/run_competition.sh.
+# ROS1 counterpart of 2026_CTRL_competition/run_competition.sh.
 # The original default drive:=true is preserved.
 set -e
 ws="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

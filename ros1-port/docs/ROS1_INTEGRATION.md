@@ -2,7 +2,7 @@
 
 아래는 통합 검증 체크리스트다. Ubuntu MORAI PC에서 실제 수행한 범위와 미검증 범위는
 [Linux Docker 검증 기록](NOETIC_DOCKER_VALIDATION.md)에 별도로 기록한다. Windows 비교 통과와
-별개로 각 항목의 결과가 필요하다. 기준은 원본 `2026foscar-competition`이며 다른 폴더나 SCMC를 사용하지 않는다.
+별개로 각 항목의 결과가 필요하다. 기준은 원본 `2026_CTRL_competition`이며 다른 폴더나 SCMC를 사용하지 않는다.
 
 ## 환경과 패키지
 

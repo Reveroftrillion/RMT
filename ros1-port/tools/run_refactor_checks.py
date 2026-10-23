@@ -17,8 +17,11 @@ def main():
     results = WS / 'verification/.work' / ('identifier-refactor-' + datetime.now().strftime('%Y%m%d-%H%M%S'))
     results.mkdir(parents=True, exist_ok=False)
     tracked = subprocess.check_output(['git', 'ls-files', '-z'], cwd=REPO).decode('utf-8').split('\0')
+    # Resolve the reference directory rename before it has been committed too.
+    tracked = [name.replace('2026foscar-competition/', '2026_CTRL_competition/', 1)
+               if name.startswith('2026foscar-competition/') else name for name in tracked]
     protected = [REPO / name for name in tracked if name and (
-        name.startswith('2026foscar-competition/') or
+        name.startswith('2026_CTRL_competition/') or
         (name.startswith('ros1-port/') and (name.endswith('.json') or name.endswith('.md'))
          and name not in ('ros1-port/README.md',)))]
     before = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in protected}

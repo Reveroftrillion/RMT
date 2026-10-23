@@ -10,7 +10,7 @@ import subprocess
 HERE=Path(__file__).resolve().parent
 PORT=HERE.parent
 REPO=PORT.parent
-SOURCE=REPO/'2026foscar-competition'
+SOURCE=REPO/'2026_CTRL_competition'
 MANIFEST=HERE/'source-manifest.json'
 
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -28,7 +28,7 @@ def main():
     if args.record_baseline:
         if MANIFEST.exists(): raise SystemExit('Refusing to overwrite existing baseline manifest')
         revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
-        MANIFEST.write_text(json.dumps(dict(git_head=revision,reference='2026foscar-competition',files=actual),
+        MANIFEST.write_text(json.dumps(dict(git_head=revision,reference='2026_CTRL_competition',files=actual),
             indent=2,ensure_ascii=False),encoding='utf-8')
         print('Recorded',len(actual),'original files')
     recorded=json.loads(MANIFEST.read_text(encoding='utf-8'))['files']

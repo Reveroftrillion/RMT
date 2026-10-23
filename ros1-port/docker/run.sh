@@ -17,7 +17,7 @@ if [[ ${1:-} == --receive-root ]]; then
   # Source is read-only for runtime; build as the host user first.
   shift
   options+=(--user 0:0 --group-add "$(id -g)" --cap-drop ALL --cap-add NET_BIND_SERVICE
-    --mount "type=bind,src=$repo/2026foscar-competition,dst=/workspace/2026foscar-competition,readonly"
+    --mount "type=bind,src=$repo/2026_CTRL_competition,dst=/workspace/2026_CTRL_competition,readonly"
     --mount "type=bind,src=$repo/ros1-port/src,dst=/workspace/ros1-port/src,readonly")
 fi
 if [[ ${1:-} == --capture-control ]]; then

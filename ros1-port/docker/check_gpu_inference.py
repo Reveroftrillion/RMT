@@ -53,7 +53,7 @@ def main():
     frames = [np.zeros((240, 320, 3), np.uint8), np.full((480, 640, 3), 114, np.uint8),
               rng.integers(0, 256, (720, 1280, 3), dtype=np.uint8), image]
     results = []
-    for label, base in [('original', PORT.parent / '2026foscar-competition'), ('port', PORT)]:
+    for label, base in [('original', PORT.parent / '2026_CTRL_competition'), ('port', PORT)]:
         module = load(base, label + '_gpu_detector')
         model = base / 'src/foscar_camera/models/best.onnx'
         detector = module.Detector(model, confidence=.4, threads=4)

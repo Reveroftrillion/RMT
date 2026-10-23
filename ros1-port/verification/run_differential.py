@@ -44,11 +44,11 @@ def compare(a,b,path='',differences=None,stats=None):
 def copy_snapshot(side):
     destination=HERE/'.work'/side
     destination.mkdir(parents=True,exist_ok=True)
-    source=REPO/'2026foscar-competition' if side=='original' else PORT
+    source=REPO/'2026_CTRL_competition' if side=='original' else PORT
     shutil.copytree(source/'src',destination/'src',dirs_exist_ok=True,
         ignore=shutil.ignore_patterns('__pycache__','.pytest_cache','*.pyc'))
     # Original test_highway_measurement imports these offline helpers.
-    shutil.copytree(REPO/'2026foscar-competition/tools',destination/'tools',dirs_exist_ok=True)
+    shutil.copytree(REPO/'2026_CTRL_competition/tools',destination/'tools',dirs_exist_ok=True)
     return destination
 
 def run(side, selected=None, suffix=''):
