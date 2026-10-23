@@ -64,8 +64,18 @@ def estimate_material_ground_plane(points, ground_mask):
     if not len(support):
         return None
     reference_z = np.median(support[:, 2])
-    support[:, 2] -= reference_z
-    plane = estimate_ground_plane(support)
+    centered = support.copy()
+    centered[:, 2] -= reference_z
+    plane = estimate_ground_plane(centered)
+    if plane is None:
+        # A sloped road's median height is not its height at the origin. After
+        # braking it can leave a valid plane outside the centered intercept guard.
+        # Retry the height reference only; the same robust estimator must still
+        # validate slope, dominance, residuals and broad spatial support.
+        design = np.c_[support[:, :2], np.ones(len(support))]
+        reference_z = np.linalg.lstsq(design, support[:, 2], rcond=None)[0][2]
+        centered[:, 2] = support[:, 2] - reference_z
+        plane = estimate_ground_plane(centered)
     if plane is not None:
         plane[2] += reference_z
     return plane
