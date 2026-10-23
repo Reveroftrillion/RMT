@@ -29,6 +29,7 @@ import socket
 import threading
 
 import foscar_ros1 as rclpy
+from foscar_ros1.executors import ExternalShutdownException
 from foscar_ros1.node import Node
 from foscar_ros1.qos import qos_profile_sensor_data
 
@@ -187,7 +188,7 @@ def main(args=None):
     node = CameraBridge()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()

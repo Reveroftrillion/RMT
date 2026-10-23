@@ -34,7 +34,8 @@ def main():
         result = code_version()
     else:
         raise ValueError('unknown launch metadata command: ' + command)
-    print(result)
+    # roslaunch command parameters retain stdout verbatim, including newlines.
+    print(result, end='')
 
 
 if __name__ == '__main__':
