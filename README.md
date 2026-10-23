@@ -4,19 +4,71 @@
 `2026_CTRL_competition/` 원본을 비교 기준으로 보존하고 `ros1-port/`에서
 ROS1 Noetic·Python 3.10·catkin·MORAI 환경으로 개발한다.
 
+## 실행
+
+**이 PC에서는 새 Bash 터미널에서 `roslaunch ctrl_start.launch`만 실행하면 된다.**
+어느 폴더에서든 사용할 수 있고 Docker 진입은 자동이다. 기존 Docker 이미지·빌드는 그대로 사용한다.
+
+1. MORAI에서 같은 sample_scene을 로드하고 원래 시작점 반경3m 안으로 Reset한다.
+2. Manual/P·Pause 해제 상태에서 Status·제어·GPS·IMU·LiDAR·Camera 채널을 다시 Connect한다.
+   [현재 포트 설정](ros1-port/README.md#morai-준비)을 따른다.
+3. 기존 실행을 종료한 상태에서 새 Bash 터미널에 입력한다.
+
+```bash
+roslaunch ctrl_start.launch
+```
+
+**기본값은 `drive:=true bag:=true raw:=true`이므로 기동 직후 출발할 수 있다.**
+센서 연결만 먼저 점검하려면 다음을 실행하고, Ctrl+C로 종료한 뒤 위 주행 명령을 실행한다.
+
+```bash
+roslaunch ctrl_start.launch drive:=false
+```
+
+종료는 실행한 터미널에서 **Ctrl+C 한 번**. 실제 속도0과
+`shutdown handoff confirmed: Manual/P, brake released`를 확인한다.
+이 일반 주행 명령에는 충돌·장기 무진행 자동 종료 감독이 없다.
+
+설정 등록 전에 열어 둔 터미널이거나 launch 파일을 찾지 못한다면 한 번 실행한다:
+
+```bash
+source ~/RMT-ros1/ros1-port/docker/host_setup.bash
+```
+
+주행 기록은 `ros1-port/docker/artifacts/ctrl_start_*` 아래 기본 bag·raw.bag·follower CSV에 남는다.
+다른 PC의 한 번 설치와 기존 Docker/bash 실행 방법은
+[ROS1 실행 안내](ros1-port/README.md#대회용-launch-한-번으로-실행),
+[호스트 명령 설정](ros1-port/docs/HOST_ROSLAUNCH_2026-10-23.md)을 참고한다.
+
 ## 최신 개발 결과 — 2026-10-23
+
+로터리 수정 후 사용자 직접 주행2회에서 모두 FINISH·최종 속도 약0을 확인했다.
+첫 FINISH까지 기록 경과는201.650/211.750초이며 공식 시간이 아니다.
+공식 차선·신호·충돌 점수와 주행 내내 소스 고정은 별도 미검증이다.
+[두 완주 기록·게시 기준](ros1-port/docs/USER_FULLCOURSE_2026-10-23.md).
+
+최신 로터리 s868.79m 정지는 지면 보정이 로터리에 적용되지 않아 차선 반사가 점유 후보로
+남는 경계를 확인해 수정했다. 수정 후 감독 시험에서 CP1~9·로터리 출구를 통과하고
+s941.45m에서 정지·Manual/P로 종료했다. 원본 충돌9,293개 중 유효0이다.
+전체 회귀952 PASS/기존 로터리 고정 높이 정책 충돌1 FAIL이며 기대값은 보존했다.
+이 시험은 로터리까지 부분 주행1회다. [로터리 수정·실제 재시험](ros1-port/docs/ROUNDABOUT_WAIT_2026-10-23.md).
 
 **현재 소스에는 이후 정적 정지의 오프라인 수정이 추가됐다.**
 제동 구간의 지면 기준점 오류를 수정했고 알고리즘950·도구9 검사,
 실패 raw 재생의 cap0 77→0, 성공 raw target618개 동일을 확인했다.
-[정적 정지 수정·검증](ros1-port/docs/STATIC_STOP_2026-10-23.md)의 실제 MORAI 재시험은 아직 남아 있다.
-아래 완주는 이 정적 수정 전 터널 수정본의 결과다.
+[정적 정지 수정·검증](ros1-port/docs/STATIC_STOP_2026-10-23.md)은 당시 오프라인 기록이며,
+이후 사용자 완주와 위 최신 부분 감독 시험의 CP4 통과를 확인했다.
+아래 감독 완주는 이 정적 수정 전 터널 수정본의 결과다.
+
+이후 사용자가 최신 main으로 다시 완주했다고 보고했다. 해당 follower 기록에서도
+FINISH·마지막 속도 약0을 확인했다. 공식 충돌·차선·점수와 감독 인계 판정은 별도다.
+[사용자 완주·호스트 명령·후속 개발](ros1-port/docs/HOST_ROSLAUNCH_2026-10-23.md)을 참고한다.
 
 새 `ctrl_start.launch`의 실제 수신·기록·제어 UDP0을 확인했다. 터널 s1827m 정지를
 원본 LiDAR로 재현한 뒤 지면 보정의 차선 재질 지원영역을 최소 수정했다.
 수정본으로 제공 CP·END·터널 통과1회, 원본 충돌16,210패킷 중 유효0,
 종료 후 정지·Manual/P 인계를 확인했다. 전체 알고리즘946·도구9 검사 PASS.
-이전 입력 중단은 미해결이며, s315.6m 정적 수정은 실제 재시험이 남아 있다.
+이전 입력 중단은 미해결이며, 다른 배치·입력 조건에서의 정적 수정 검증은 남아 있다.
 공식 차선·다른 조건은 미검증이다.
 
 [오늘 수정·검증과 남은 문제](ros1-port/docs/TUNNEL_MATERIAL_EDGE_2026-10-23.md) ·
@@ -53,50 +105,6 @@ ROS1 Noetic·Python 3.10·catkin·MORAI 환경으로 개발한다.
 [공유 가능한 시험 요약](ros1-port/docs/stability-20261022/summary.json) ·
 [이전 사용자 완주와 미검증](ros1-port/docs/CURRENT_STATUS_2026-10-22.md) ·
 [작업 계획](ros1-port/docs/DEVELOPMENT_WORKFLOW.md)
-
-## 실행
-
-Ubuntu MORAI PC의 현재 경로는 `/home/foscar/RMT-ros1`이다.
-환경 구축은 [ROS1 실행 안내](ros1-port/README.md),
-[Docker 안내](ros1-port/docker/README.md)를 따른다.
-
-1. MORAI에서 같은 sample_scene을 로드하고 원래 시작점·Manual/P로 둔다.
-2. Status `127.0.0.1:9088 → 127.0.0.1:909`, Ego Ctrl `9093`, Collision 목적지 `9092`를 Connect한다.
-3. 기존 launch를 정상 종료한 상태에서 수신 전용으로 확인한다.
-
-```bash
-cd /home/foscar/RMT-ros1
-bash ros1-port/docker/run_course.sh drive:=false bag:=true
-```
-
-위 실행을 Ctrl+C로 종료한 뒤 실제 시뮬레이터 주행:
-
-```bash
-bash ros1-port/docker/run_course.sh drive:=true bag:=true
-```
-
-실행 직후 출발할 수 있다. 같은 터미널에서 Ctrl+C 한 번 후 실제 속도0과
-`shutdown handoff confirmed: Manual/P, brake released`를 확인한다.
-비상 시 MORAI Pause를 사용하되 Pause만으로 정지·인계 성공을 판정하지 않는다.
-직접 실행 래퍼에는 충돌·장기 무진행 자동 종료 감독이 없다.
-새 `docker/artifacts/manual-*`에 원문 console·ROS·follower CSV·bag·원본 센서를 남긴다.
-출력만 축소하며 제어 정책을 우회하지 않는다.
-
-**정확히 한 점에 놓을 필요는 없다.** 이 실행은 폐루프의 START 반경3m 안에서
-첫 랩 s0으로 초기화한다. 반경 밖·중간 위치에서는 FAULT로 거부한다.
-이는 시작/끝이 겹치는 폐루프에서 마지막 구간으로 잘못 투영되는 것을 막는
-명시적 첫 랩 옵션이며 허용 반경을 임의로 넓히지 않는다.
-중간 위치 수신 점검은 `docker/local.launch drive:=false`로 별도 수행한다.
-
-대회용 launch는 `ros1-port/ctrl_start.launch`다. 준비된 Docker 터미널에서는
-`roslaunch ctrl_start.launch` 한 번으로 실행하며 기본 주행·bag 기록이 켜진다.
-호스트에서 바로 실행하려면 다음 명령을 사용한다:
-
-```bash
-bash ros1-port/docker/run.sh --receive-root roslaunch ctrl_start.launch
-```
-
-[대회용 launch 준비·수신 점검·종료](ros1-port/README.md#대회용-launch-한-번으로-실행)를 따른다.
 
 ## 알고리즘
 

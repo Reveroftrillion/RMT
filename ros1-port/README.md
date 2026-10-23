@@ -1,12 +1,22 @@
 # ROS1 / MORAI 실행 안내
 
-현재 소스의 정적 정지 기준점 수정은 오프라인 알고리즘950·도구9 검사를 통과했다.
-[정적 정지 수정 기록](docs/STATIC_STOP_2026-10-23.md)의 실제 주행 재검증은 아직 남아 있다.
-아래 10/23 완주는 이 추가 정적 수정 전 결과다.
+로터리 수정 후 사용자 직접 주행2회 모두 FINISH·최종 속도 약0을 확인했다.
+[최신 두 완주 기록과 남은 검증](docs/USER_FULLCOURSE_2026-10-23.md)을 참고한다.
+공식 점수·충돌·Manual/P 인계는 이 CSV만으로 확정하지 않는다.
+
+최신 [로터리 정지 수정·실제 검증](docs/ROUNDABOUT_WAIT_2026-10-23.md)은
+CP1~9·로터리 출구·s941.45m 종료, 원본 충돌 유효0·정지/Manual/P를 확인했다.
+로터리 지면 보정 누락만 수정했고 전체 회귀952 PASS/기존 정책 기대값 충돌1 FAIL이다.
+위 부분 시험은 로터리 뒤에서 종료했다. 다음 주행 전에는 원래 시작점 Reset·재연결이 필요하다.
+
+정적 정지 기준점 수정은 오프라인 알고리즘950·도구9 검사를 통과했다.
+이후 사용자가 최신 main으로 다시 완주했다고 보고했고 해당 follower의 FINISH·최종 정지도 확인했다.
+[호스트 실행·사용자 완주·현재 남은 작업](docs/HOST_ROSLAUNCH_2026-10-23.md)을 먼저 확인한다.
+[정적 수정 당시 기록](docs/STATIC_STOP_2026-10-23.md)과 아래 감독 완주는 이 사용자 시험 전 결과다.
 
 10/23 새 launch 실환경 검증·터널 수정 후 해당 조건 완주1회 결과는
 [오늘 수정·검증](docs/TUNNEL_MATERIAL_EDGE_2026-10-23.md)을 참고한다.
-이전 정적 정지·입력 중단·공식 차선·변형 조건은 남아 있다.
+입력 중단·공식 차선·변형 조건은 남아 있다. 이전 정적 정지는 위 후속 검증 범위를 참고한다.
 
 현재 상태와 미션별 결과는 [루트 README](../README.md),
 [이전 10/22 검증 범위](docs/STABILITY_AUDIT_2026-10-22.md)를 먼저 확인한다.
@@ -50,72 +60,97 @@ Ego Status9111을 Competition Status909 대신 사용하지 않는다.
 
 ## 대회용 launch 한 번으로 실행
 
-이미 빌드된 현재 Docker 환경에서 터미널을 준비한다:
-
-```bash
-cd /home/foscar/RMT-ros1
-bash ros1-port/docker/run.sh --receive-root
-```
-
-열린 컨테이너 터미널은 `/workspace/ros1-port`이며 Noetic·catkin 환경이 로드된다.
-MORAI를 위 설정과 START 반경3m 안의 Manual/P 상태로 준비한 뒤 실행한다:
+**이 PC에는 호스트 명령 등록이 끝났다.** 위 MORAI 준비를 마친 뒤 새 Bash 터미널에서:
 
 ```bash
 roslaunch ctrl_start.launch
 ```
 
-**이 launch는 기본 `drive:=true bag:=true raw:=true`로 기동 직후 출발할 수 있다.**
-전체 센서·위치 추정·인지·미션 판단·추종·UDP 송수신과 기본/원본 bag 기록을
-실행한다. 첫 랩 초기화와 현재 호스트 포트를 포함하며 카메라는 기존대로 5초 뒤 시작한다.
-기록은 호스트 `ros1-port/docker/artifacts/ctrl_start_*` 아래 bags·raw.bag·follower에 남는다.
-실행마다 새 이름을 사용한다. `run_dir:=절대경로`를 지정하면 해당 경로를 사용하므로
-기록 보존을 위해 실행별 새 디렉터리를 지정한다. 컨테이너 경로는 호스트 bind mount
-안의 경로를 사용한다.
+어느 폴더에서든 실행할 수 있으며 내부 Docker 진입은 자동이다.
+**기본값은 `drive:=true bag:=true raw:=true`다. 기동 직후 출발할 수 있다.**
+전체 센서·위치 추정·인지·미션 판단·추종·UDP 송수신과 기본/원본 bag 기록을 실행한다.
+카메라는 기존대로5초 뒤 시작한다. 매 실행마다 이미지나 워크스페이스를 다시 빌드하지 않는다.
 
-수신 전용 점검은 `roslaunch ctrl_start.launch drive:=false`이며, 종료 후 주행 launch를
-별도로 실행한다. `bag:=false`는 양쪽 기록기를 끄고 `raw:=false`는 원본 센서 기록기만 끈다.
-종료는 Ctrl+C 한 번 후 정지·Manual/P 인계를 확인한다. MORAI 장면 로드·채널 Connect는
-별도로 준비하며 이 launch에는 자동 주행 감독이 없다.
+연결·센서만 먼저 확인할 때:
 
-호스트에서 컨테이너 진입과 launch를 한 명령으로 실행할 수도 있다:
+```bash
+roslaunch ctrl_start.launch drive:=false
+```
+
+수신 점검을 Ctrl+C로 종료하고 주행 명령을 별도로 실행한다. `drive:=false`는
+bridge의 제어 UDP 송신을 끈다. 엄밀한 송신0 검사는 [verify_live.py](docker/verify_live.py)의
+passive capture를 사용하며 센서 수신만으로 판정하지 않는다.
+
+설정 등록 전에 열어 둔 터미널이거나 `is not a launch file name` 오류가 나면 한 번 실행한다:
+
+```bash
+source ~/RMT-ros1/ros1-port/docker/host_setup.bash
+```
+
+이후 같은 터미널에서 `roslaunch ctrl_start.launch`를 다시 사용할 수 있다.
+새 Bash 터미널은 위 source가 필요 없다. 연결은 정확히 첫 인자가 `ctrl_start.launch`인
+명령에 적용되며, 다른 패키지의 roslaunch는 기존 호스트 ROS로 전달한다.
+
+| 인자 | 기본값 | 용도 |
+| --- | --- | --- |
+| `drive` | `true` | `false`면 제어 UDP 송신을 끄고 수신·판단 확인 |
+| `bag` | `true` | `false`면 기본 bag과 raw bag 기록기를 모두 끔 |
+| `raw` | `true` | `false`면 추가 원본 센서 bag만 끔. 기본 bag은 bag 설정을 따름 |
+| `run_dir` | 실행마다 새 디렉터리 | 직접 지정할 때는 `/workspace/ros1-port/docker/artifacts/` 아래 새 경로 사용 |
+
+종료는 실행 터미널에서 Ctrl+C 한 번 후 실제 속도0·Manual/P 인계를 확인한다.
+이 일반 주행에는 충돌·장기 무진행 자동 종료 감독이 없다. 감독 시험은
+[audit_course.py](docker/audit_course.py)와 [감독 절차](docs/STABILITY_AUDIT_2026-10-22.md#기록재현복구)를 따른다.
+
+### 다른 PC의 한 번 설치
+
+호스트 ROS1 Noetic·Docker·GPU와 이 저장소의 이미지/워크스페이스 빌드를 먼저 준비한다.
+현재 PC의 명령 연결만 설치할 때는 저장소 루트에서:
+
+```bash
+cd ~/RMT-ros1
+python3 ros1-port/tools/install_host_roslaunch.py
+source ros1-port/docker/host_setup.bash
+```
+
+설치 도구는 ~/.bashrc를 백업하고 연결 블록을 등록한다.
+호스트에 Docker의 Python3.10 catkin devel/setup.bash를 직접 source하지 않는다.
+[설치 범위·해제](docs/HOST_ROSLAUNCH_2026-10-23.md)를 참고한다.
+
+### 기존 Docker·bash 실행 방법
+
+호스트 명령 연결을 쓰지 않을 때도 기존 명령은 사용할 수 있다. 저장소 루트에서:
 
 ```bash
 bash ros1-port/docker/run.sh --receive-root roslaunch ctrl_start.launch
 ```
 
-기존 `run_course.sh`도 동일 launch를 사용한다. bash 래퍼의 무인자 기본값은
-기존대로 `drive:=false`다. 래퍼는 추가로 console.log 원문 저장·화면 출력 축소·실행별
-ROS 로그 경로 설정을 제공한다. 직접 launch의 ROS 로그는 기본 ROS 로그 경로를 따른다.
-Docker를 새로 만들거나 ROS2 비교 원본을 빌드할 필요는 없다. 기존 이미지·워크스페이스
-빌드가 준비되어 있어야 한다.
-
-## 시작점부터 실행
+Docker 터미널에 직접 들어가려면:
 
 ```bash
-cd /home/foscar/RMT-ros1
-bash ros1-port/docker/run_course.sh drive:=false bag:=true
+bash ros1-port/docker/run.sh --receive-root
+# 열린 Docker 터미널의 /workspace/ros1-port에서 실행
+roslaunch ctrl_start.launch
 ```
 
-Status·센서·위치·TF·target을 확인하고 이 실행을 Ctrl+C로 종료한다.
-drive=false는 ROS 제어 요청을 만들 수 있지만 bridge UDP 송신을 허용하지 않는다.
-송신0개의 엄밀한 증거가 필요하면 [verify_live.py](docker/verify_live.py)의
-passive capture를 사용한다. 센서가 들어온다는 것만으로 UDP0을 판정하지 않는다.
-
-실제 MORAI 시뮬레이터 주행:
+화면 반복 출력 축소·원문 console.log·실행별 ROS 로그도 필요하면 기존 래퍼를 사용한다:
 
 ```bash
 bash ros1-port/docker/run_course.sh drive:=true bag:=true
 ```
 
-기동 직후 출발 가능. 직접 실행에는 충돌·이탈·무진행 자동 종료 감독이 없다.
-감독 시험은 [audit_course.py](docker/audit_course.py)와
-[기존 감독 조건](docs/FULL_COURSE_AUDIT_2026-10-22.md)을 사용한다.
-이번 반복 시험의 영구 YOLO/follower 로그를 포함한 준비·감독 명령은
-[최신 재현 안내](docs/STABILITY_AUDIT_2026-10-22.md#기록재현복구)를 따른다.
+run_course.sh의 **무인자 기본값은 drive=false**다. 직접 launch의 기본 drive=true와 구분한다.
+래퍼도 같은 ctrl_start.launch를 사용하며 실행·제어 정책은 같다.
 
-현재 실행은 START 반경3m 안의 첫 랩 전용이다. 정확히 같은 좌표 하나를
-요구하지 않지만 반경 밖에서 s0을 강제로 부여하지 않는다. 실패 시 원래
-시작점으로 Reset한다. 중간 위치 수신 점검은 다음처럼 별도 실행한다:
+## 시작점부터 실행
+
+위 `roslaunch ctrl_start.launch`는 START 반경3m 안의 첫 랩 전용이다.
+정확히 같은 좌표 하나를 요구하지 않지만 반경 밖에서 s0을 강제로 부여하지 않는다.
+반경 밖·중간 위치에서는 FAULT로 거부한다. 다음 주행 전 원래 시작점으로 Reset하고
+Manual/P·채널 연결을 확인한다. 터널·로터리 중간에서 그대로 새 주행을 시작하지 않는다.
+
+중간 위치의 수신 점검은 첫 랩 옵션이 없는 기존 local.launch로 별도 수행한다.
+저장소 루트에서:
 
 ```bash
 bash ros1-port/docker/run.sh --receive-root \
@@ -129,15 +164,23 @@ bash ros1-port/docker/run.sh --receive-root \
 인계 실패 로그가 있으면 성공으로 취급하지 않는다. 비상 시 MORAI Pause를
 사용하되 Pause 상태 자체는 제동·인계 증거가 아니다.
 
-각 실행은 호스트 `ros1-port/docker/artifacts/manual-*`를 새로 만든다.
-console.log 원문 전체, ROS 로그, follower CSV, 기본 상태/인지/계획/제어 bag,
-원본 GPS/IMU/LiDAR/raw·debug 카메라/TF bag을 보존한다.
-`raw:=false`는 추가 원본 기록기만 끄고 `bag:=false`는 기록기를 모두 끈다.
-YOLO JSONL은 기존 임시 경로가 남아 있어 이 래퍼가 영구 보존한다고 주장하지 않는다.
-원본 bag 파일명 개행 문제도 남아 있으며 `ls -lb`로 확인한다.
+`roslaunch ctrl_start.launch`의 기록은 호스트
+`ros1-port/docker/artifacts/ctrl_start_*` 아래에 실행별로 생성된다.
 
-화면에는 반복 상태/통계를5초, 같은 경고를10초 간격으로 표시한다.
-상태 전환·ERROR/FATAL·인계는 즉시 표시하며 필터 전 문구는 console.log에 남긴다.
+- `bags/`: 기본 상태·인지·계획·제어 bag
+- `raw.bag`: 원본 GPS·IMU·LiDAR·raw/debug 카메라·TF bag
+- `follower/`: 경로 추종 CSV
+
+기본 bag과 추가 raw bag은 bag=true일 때 기록하며, raw=false면 추가 raw 기록만 끈다.
+`run_dir`를 직접 지정하면 컨테이너의 /workspace bind mount 안에 실행별 새 경로를 사용한다.
+직접 launch의 ROS 로그는 컨테이너 기본 경로를 따르므로 영구 console/ROS 로그가 필요하면
+위 run_course.sh 래퍼를 사용한다.
+
+래퍼는 `docker/artifacts/manual-*`에 위 주행 자료와 원문 console.log·실행별 ROS 로그를 남긴다.
+화면에는 반복 상태/통계를5초, 같은 경고를10초 간격으로 표시하며
+상태 전환·ERROR/FATAL·인계는 즉시 표시한다. 필터 전 문구는 console.log에 보존한다.
+YOLO JSONL의 영구 보존은 이 래퍼만으로 보장하지 않는다.
+기록 파일명 출력의 개행은 수정했으며 과거 개행 포함 파일은 그대로 보존했다.
 터미널 프롬프트의 `$`, 이어쓰기 프롬프트 `>`는 명령에 포함하지 않는다.
 
 ## 문제 구분
