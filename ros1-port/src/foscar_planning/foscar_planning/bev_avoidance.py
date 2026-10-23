@@ -121,14 +121,24 @@ class BevAvoidance:
             # Off the pavement entirely: no avoidance path can reach it, so it is no box to plan around --
             # whatever its distance from the global path (user 2026-10-09: a structure beside the tunnel
             # portal, +6.5 m off the road, blocked the slalom). Partly on the pavement it stays.
+            interior = None
             if ctx.road_map is not None and not np.asarray(road_contains(ctx, points)).any():
-                continue
+                # All corners may be off-road while the occupied body spans the road.
+                # Sample only existing occupied cells; do not fill map gaps or grow the ROI.
+                interior = (indices + .5) * self.field.resolution
+                if not np.asarray(road_contains(ctx, interior)).any():
+                    continue
             # Tunnel: off the mapped lanes but for a sliver, no box either (user 2026-10-10: standing outside our lane it
             # is no reason to leave our line; coming in, YIELD stops us). The measured wall-to-wall corridor holds the
             # shoulder: a deer standing there (truth 0.4 m off the lanes) read 0.2-0.45 m onto them, became a box and
             # pulled the slalom over. The guard still brakes for any occupied cell on our path.
-            if getattr(ctx, 'mission_name', '') == 'TUNNEL' and not deep_on_lanes(ctx, points, self.LANE_SLIVER_M):
-                continue
+            if (getattr(ctx, 'mission_name', '') == 'TUNNEL' and ctx.road_map is not None
+                    and not deep_on_lanes(ctx, points, self.LANE_SLIVER_M)):
+                if interior is None:
+                    interior = (indices + .5) * self.field.resolution
+                if not deep_on_lanes(ctx, interior, self.LANE_SLIVER_M):
+                    continue
+            # Without a map retain the obstacle; mapped planning then refuses a bypass.
             sd = [to_frenet(ctx.route, x, y, ctx.s+ctx.s_offset) for x,y in points]
             box = polygon_box([(s-ctx.s_offset,d) for s,d in sd])
             if box.s_max >= ctx.s-self.field.sight_m and box.s_min <= ctx.s+self.field.sight_m:

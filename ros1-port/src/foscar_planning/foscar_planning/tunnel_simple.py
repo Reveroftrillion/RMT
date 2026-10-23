@@ -206,7 +206,7 @@ def plan(groups: list, feasible: Callable, s_now: float, d_now: float, v: float,
             checked_to = max(end_check, start + length + front + rear)
         return len(groups), (offsets, starts, lengths, steep, travel, d_prev, ready, checked_to)
 
-    def way_back(last, ready, checked_to=-math.inf):
+    def way_back(last, ready, checked_to=-math.inf, require_road=False):
         """(start, length) back to 0 after the last group: from return_from on, else as early as clear."""
         if abs(last) < 1e-6:
             return 0., 0.
@@ -220,6 +220,9 @@ def plan(groups: list, feasible: Callable, s_now: float, d_now: float, v: float,
                 for start in np.r_[np.arange(first, max(first, horizon), 2.), max(first, horizon)]:
                     if clear(last, 0., start, length, max(min(ready, start), min(start, checked_to)),
                              max(horizon, start + length + front + rear)):
+                        if (require_road and segment_ok is not None and not segment_ok(
+                                last, 0., start, length, start, start + length + front + rear)):
+                            continue
                         return float(start), float(length)
         return None
 
@@ -254,7 +257,14 @@ def plan(groups: list, feasible: Callable, s_now: float, d_now: float, v: float,
     for cost, choice, c, back in results:
         offsets, starts, lengths, steep, travel, last, ready, checked = c
         if not road_ok(offsets, starts, lengths, back):
-            continue
+            # The preferred late return may leave the road even when an earlier
+            # collision-clear return is paved. Keep the entry checks and the
+            # original fast path; retry only this rejected return on the same road.
+            if back is None or not road_ok(offsets, starts, lengths, None):
+                continue
+            back = way_back(last, ready, checked, require_road=True)
+            if back is None:
+                continue
         per_group = list(offsets)
         if back is not None and back[1] > 0:
             offsets = offsets + [0.]; starts = starts + [back[0]]; lengths = lengths + [back[1]]
