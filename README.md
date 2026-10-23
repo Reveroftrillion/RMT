@@ -1,8 +1,27 @@
 # RMT — ROS1 / MORAI 자율주행
 
 2026 대학생 AI/SW 모빌리티 경진대회용 개인 개발 저장소다.
-`2026foscar-competition/` 원본을 비교 기준으로 보존하고 `ros1-port/`에서
+`2026_CTRL_competition/` 원본을 비교 기준으로 보존하고 `ros1-port/`에서
 ROS1 Noetic·Python 3.10·catkin·MORAI 환경으로 개발한다.
+
+## 최신 개발 결과 — 2026-10-23
+
+**현재 소스에는 이후 정적 정지의 오프라인 수정이 추가됐다.**
+제동 구간의 지면 기준점 오류를 수정했고 알고리즘950·도구9 검사,
+실패 raw 재생의 cap0 77→0, 성공 raw target618개 동일을 확인했다.
+[정적 정지 수정·검증](ros1-port/docs/STATIC_STOP_2026-10-23.md)의 실제 MORAI 재시험은 아직 남아 있다.
+아래 완주는 이 정적 수정 전 터널 수정본의 결과다.
+
+새 `ctrl_start.launch`의 실제 수신·기록·제어 UDP0을 확인했다. 터널 s1827m 정지를
+원본 LiDAR로 재현한 뒤 지면 보정의 차선 재질 지원영역을 최소 수정했다.
+수정본으로 제공 CP·END·터널 통과1회, 원본 충돌16,210패킷 중 유효0,
+종료 후 정지·Manual/P 인계를 확인했다. 전체 알고리즘946·도구9 검사 PASS.
+이전 입력 중단은 미해결이며, s315.6m 정적 수정은 실제 재시험이 남아 있다.
+공식 차선·다른 조건은 미검증이다.
+
+[오늘 수정·검증과 남은 문제](ros1-port/docs/TUNNEL_MATERIAL_EDGE_2026-10-23.md) ·
+[공유 주행 요약](ros1-port/docs/ctrl-start-20261023/run-04-summary.json) ·
+[현재 작업 계획](ros1-port/docs/DEVELOPMENT_WORKFLOW.md)
 
 ## 현재 결과 — 2026-10-22
 
@@ -69,6 +88,16 @@ bash ros1-port/docker/run_course.sh drive:=true bag:=true
 명시적 첫 랩 옵션이며 허용 반경을 임의로 넓히지 않는다.
 중간 위치 수신 점검은 `docker/local.launch drive:=false`로 별도 수행한다.
 
+대회용 launch는 `ros1-port/ctrl_start.launch`다. 준비된 Docker 터미널에서는
+`roslaunch ctrl_start.launch` 한 번으로 실행하며 기본 주행·bag 기록이 켜진다.
+호스트에서 바로 실행하려면 다음 명령을 사용한다:
+
+```bash
+bash ros1-port/docker/run.sh --receive-root roslaunch ctrl_start.launch
+```
+
+[대회용 launch 준비·수신 점검·종료](ros1-port/README.md#대회용-launch-한-번으로-실행)를 따른다.
+
 ## 알고리즘
 
 | 구성·미션 | 현재 방식 |
@@ -83,9 +112,6 @@ bash ros1-port/docker/run_course.sh drive:=true bag:=true
 | 고속도로 | 차로 점유·시간 슬롯 탐색·차간거리 제어·5차 차선 변경/복귀 |
 | 터널 | 재질/지면 지지 검사·BEV·좌우 통과 조합·5차 곡선·DR |
 
-카메라 슬라이딩 윈도우 차선 검출을 쓰는 구조가 아니다. 일반 회피에는
-횡방향 후보 비용 탐색이 있으나 현재 정적 통과를 일반 래티스의 성공으로
-표현하지 않는다. 고정 배치 사전정보와 실제 센서 제동을 함께 사용한다.
 
 ## 검증과 남은 작업
 
@@ -96,11 +122,15 @@ ROS1 어댑터27 PASS, native 메시지/TF·격리 catkin build/install·노드 
 [검사 요약](ros1-port/docs/verification-20261022/checks-summary.json)을 참고한다.
 Windows 과거 결과는 현재 Linux 실행과 구분한다.
 
-다음 우선순위는 터널 s1828 반복 정지 원인 재현, 차선·공식 감점 확인,
+다음 우선순위는 최신 정적 수정 후 실제 주행과 터널 재확인, 차선·공식 감점 확인,
 다양한 보행자/차량 조건과 전체 코스 반복성, 입력 지연·손실·재연결·과부하,
 배포 해시 검사 정합성이다. 같은 장면2회 성공을 모든 조건의 성공으로 해석하지 않는다.
 
 ## 문서와 보존
+
+과거 개발본·계획서·참고 자료는 [과거자료/](과거자료/README.md)에 모았다.
+현재 개발은 `ros1-port/`, 비교 원본은 `2026_CTRL_competition/`이다.
+
 
 - [개발 규칙](AGENTS.md) · [문서 분류](ros1-port/docs/MARKDOWN_INDEX.md)
 - [오른쪽 정적·보행자 수정](ros1-port/docs/RIGHT_STATIC_PEDESTRIAN_2026-10-22.md)

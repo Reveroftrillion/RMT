@@ -117,8 +117,10 @@ def classify(name, tags):
         category = next(m for m in MISSIONS if m in detected)
     else:
         category = '개발·검증'
-        if name.startswith('2026foscar-competition/'):
+        if name.startswith('2026_CTRL_competition/'):
             role = '보존 원본·출처·비교·과거 재현'
+        elif name.startswith('과거자료/'):
+            role = '과거 개발·계획·참고 자료; 원문 보존, 옛 실행 경로는 보관 안내 참조'
         elif name.startswith(('2026foscar/', '2026foscar-team2/', '2026foscar-records/')):
             role = '보류: 버전 차이·고유 시험·자기 트리 재현 의존성'
         elif name.startswith('sim_2025/'):

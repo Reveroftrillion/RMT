@@ -4,7 +4,7 @@
 
 ## 비교 기준과 원본 보호
 
-`verification/source-manifest.json`은 작업 시작 시 원본 `2026foscar-competition`의 파일 530개 전체에 대해 크기와 SHA256을 기록한다. 원본의 Git 로컬 변경 및 삭제가 없음을 확인한 후 생성했다. 모델 파일도 실제 저장된 바이트를 기록하며 문서에 기재된 다른 모델 해시로 교체하지 않는다.
+`verification/source-manifest.json`은 작업 시작 시 원본 `2026_CTRL_competition`의 파일 530개 전체에 대해 크기와 SHA256을 기록한다. 원본의 Git 로컬 변경 및 삭제가 없음을 확인한 후 생성했다. 모델 파일도 실제 저장된 바이트를 기록하며 문서에 기재된 다른 모델 해시로 교체하지 않는다.
 
 `verification/check_preservation.py`는 현재 원본을 이 manifest와 대조하고, 이식한 Python 파일 104개의 내용을 검사한다. 78개는 원본과 바이트가 같고 26개는 `tools/port_boundary.py`에 명시한 ROS API/메시지/리소스 경계 변환만 적용된다. 기존 테스트와 fixture 파일 99개도 원본과 바이트가 같다. 이는 알고리즘과 상수 변경을 발견하기 위한 검사이며 ROS 실행 동작까지 증명하지는 않는다.
 

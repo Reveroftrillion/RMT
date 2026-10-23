@@ -9,7 +9,7 @@ import types
 import xml.etree.ElementTree as ET
 
 WS = Path(__file__).resolve().parents[1]
-ORIGINAL = WS.parent / '2026foscar-competition' / 'src'
+ORIGINAL = WS.parent / '2026_CTRL_competition' / 'src'
 
 
 def write_file(path, text):

@@ -26,6 +26,10 @@ def main():
         logs = Path.home() / 'foscar_logs' / 'yolo'
         logs.mkdir(parents=True, exist_ok=True)
         result = str(logs / (datetime.now().strftime('%Y%m%d_%H%M%S') + '_cam7.jsonl'))
+    elif command == 'prepare-run-dir':
+        folder = Path(sys.argv[2]).expanduser().resolve()
+        folder.mkdir(parents=True, exist_ok=True)
+        result = str(folder)
     elif command == 'code-version':
         result = code_version()
     else:

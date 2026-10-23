@@ -64,14 +64,24 @@ def estimate_material_ground_plane(points, ground_mask):
     if not len(support):
         return None
     reference_z = np.median(support[:, 2])
-    support[:, 2] -= reference_z
-    plane = estimate_ground_plane(support)
+    centered = support.copy()
+    centered[:, 2] -= reference_z
+    plane = estimate_ground_plane(centered)
+    if plane is None:
+        # A sloped road's median height is not its height at the origin. After
+        # braking it can leave a valid plane outside the centered intercept guard.
+        # Retry the height reference only; the same robust estimator must still
+        # validate slope, dominance, residuals and broad spatial support.
+        design = np.c_[support[:, :2], np.ones(len(support))]
+        reference_z = np.linalg.lstsq(design, support[:, 2], rcond=None)[0][2]
+        centered[:, 2] = support[:, 2] - reference_z
+        plane = estimate_ground_plane(centered)
     if plane is not None:
         plane[2] += reference_z
     return plane
 
 
-def material_height_region(points, plane, ground_mask, max_x, max_y=5.):
+def material_height_region(points, plane, ground_mask, max_x, max_y=5., additional_mask=None):
     """Validate tunnel ground correction inside the observed asphalt hull.
 
     The generic window remains the fallback. Same-scan material support must
@@ -98,6 +108,14 @@ def material_height_region(points, plane, ground_mask, max_x, max_y=5.):
     extra_support = evidence[~region(evidence)]
     if len(extra_support) < 3 or np.ptp(extra_support[:, 1]) < 3.:
         return supported
+    # Keep asphalt as the plane/support anchor. Low lane-paint observations may
+    # support its edge only after the original broad-asphalt checks above.
+    # The same residual and height window reject elevated reflective objects.
+    if additional_mask is not None:
+        extra_material = points[np.asarray(additional_mask, dtype=bool) & roi
+                                & (points[:, 2] > -.8) & (points[:, 2] < 1.2)]
+        agrees = np.abs(extra_material[:, 2] - extra_material[:, :2] @ plane[:2] - plane[2]) < .12
+        evidence = np.vstack((evidence, extra_material[agrees]))
     from scipy.spatial import ConvexHull, QhullError
     try:
         hull = ConvexHull(evidence[:, :2])

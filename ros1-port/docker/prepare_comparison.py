@@ -24,7 +24,7 @@ def main():
     manifest = json.loads((PORT / 'verification/source-manifest.json').read_text())['files']
     records = []
     for name, entry in manifest.items():
-        path = REPO / '2026foscar-competition' / name
+        path = REPO / '2026_CTRL_competition' / name
         data = path.read_bytes()
         before = hashlib.sha256(data).hexdigest()
         action = 'exact'
@@ -33,7 +33,7 @@ def main():
             action = 'restore_recorded_CRLF_in_disposable_copy'
         if len(data) != entry['bytes'] or hashlib.sha256(data).hexdigest() != entry['sha256']:
             raise SystemExit('Content mismatch beyond line endings; refusing reconstruction: ' + name)
-        dest = target / '2026foscar-competition' / name
+        dest = target / '2026_CTRL_competition' / name
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
         records.append(dict(path=name, checkout_sha256=before, manifest_sha256=entry['sha256'], action=action))

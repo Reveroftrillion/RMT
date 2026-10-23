@@ -113,3 +113,39 @@ def test_material_hull_follows_curved_road_but_does_not_fill_unobserved_corners(
     # The same observations cannot enlarge a caller's existing lateral ROI.
     limited = material_height_region(points, plane, material, 40., 5.)
     assert not limited[-5]
+
+
+def test_observed_low_paint_supports_curve_edge_but_preserves_raised_objects():
+    near = road(0.); near[:, 2] = .53
+    y = np.linspace(-4., 4., 61)
+    far = np.c_[np.full(len(y), 33.), y, np.full(len(y), .53)]
+    # Lane paint lies outside the asphalt hull; a low edge is between those
+    # same-scan observations. A raised paint-bright object must retain height.
+    objects = np.array([[30., -8., .53], [29., -6.5, .53], [30., -8., 1.23],
+                        [38., -14., 1.23], [45., -9., .53], [30., -25., .53]])
+    points = np.vstack((near, far, objects))
+    before = points.copy()
+    asphalt = np.arange(len(points)) < len(near) + len(far)
+    paint = np.zeros(len(points), dtype=bool)
+    paint[-6] = paint[-3] = paint[-2] = paint[-1] = True
+    plane = estimate_material_ground_plane(points, asphalt)
+    original = material_height_region(points, plane, asphalt, 40., 20.)
+    assert not original[-6:].any()
+    supported = material_height_region(points, plane, asphalt, 40., 20., paint)
+    assert supported[-6:].tolist() == [True, True, True, False, False, False]
+    height = relative_height(points, plane, supported)
+    np.testing.assert_allclose(height[-6:-3], [0., 0., .7], atol=1e-12)
+    np.testing.assert_array_equal(height[-3:], points[-3:, 2])
+    np.testing.assert_array_equal(points, before)
+    np.testing.assert_array_equal(
+        material_height_region(points, plane, asphalt, 40., 20., np.zeros(len(points), dtype=bool)),
+        original)
+
+
+def test_paint_does_not_replace_required_asphalt_support():
+    x, y = np.meshgrid(np.linspace(29., 35., 30), np.linspace(-9., -2., 30))
+    points = np.c_[x.ravel(), y.ravel(), np.full(x.size, .53)]
+    paint = np.ones(len(points), dtype=bool)
+    for asphalt in (np.zeros(len(points), dtype=bool), np.arange(len(points)) < 20):
+        assert not material_height_region(points, np.array([0., 0., .53]), asphalt,
+                                          40., 20., paint).any()

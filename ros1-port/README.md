@@ -1,7 +1,15 @@
 # ROS1 / MORAI 실행 안내
 
+현재 소스의 정적 정지 기준점 수정은 오프라인 알고리즘950·도구9 검사를 통과했다.
+[정적 정지 수정 기록](docs/STATIC_STOP_2026-10-23.md)의 실제 주행 재검증은 아직 남아 있다.
+아래 10/23 완주는 이 추가 정적 수정 전 결과다.
+
+10/23 새 launch 실환경 검증·터널 수정 후 해당 조건 완주1회 결과는
+[오늘 수정·검증](docs/TUNNEL_MATERIAL_EDGE_2026-10-23.md)을 참고한다.
+이전 정적 정지·입력 중단·공식 차선·변형 조건은 남아 있다.
+
 현재 상태와 미션별 결과는 [루트 README](../README.md),
-[최신 검증 범위](docs/STABILITY_AUDIT_2026-10-22.md)를 먼저 확인한다.
+[이전 10/22 검증 범위](docs/STABILITY_AUDIT_2026-10-22.md)를 먼저 확인한다.
 2026-10-22 동일 sample_scene 감독 시험2회에서 CP 전체·END·충돌 채널 유효 충돌0·
 정지/Manual/P를 확인했다. [최신 반복 시험](docs/STABILITY_AUDIT_2026-10-22.md)을 참고한다.
 이전 수동 bag의 FINISH와 구분하며, 터널 이전 실패·공식 차선 감점·변형 조건은 남아 있다.
@@ -39,6 +47,47 @@ Pause 해제·Manual/P로 준비한다. Reset/장면 로드 후 채널이 끊길
 
 Ego Status9111을 Competition Status909 대신 사용하지 않는다.
 기존 ROS/master/기록기를 중복 기동하지 않는다. MORAI의9088/9093 점유는 정상이다.
+
+## 대회용 launch 한 번으로 실행
+
+이미 빌드된 현재 Docker 환경에서 터미널을 준비한다:
+
+```bash
+cd /home/foscar/RMT-ros1
+bash ros1-port/docker/run.sh --receive-root
+```
+
+열린 컨테이너 터미널은 `/workspace/ros1-port`이며 Noetic·catkin 환경이 로드된다.
+MORAI를 위 설정과 START 반경3m 안의 Manual/P 상태로 준비한 뒤 실행한다:
+
+```bash
+roslaunch ctrl_start.launch
+```
+
+**이 launch는 기본 `drive:=true bag:=true raw:=true`로 기동 직후 출발할 수 있다.**
+전체 센서·위치 추정·인지·미션 판단·추종·UDP 송수신과 기본/원본 bag 기록을
+실행한다. 첫 랩 초기화와 현재 호스트 포트를 포함하며 카메라는 기존대로 5초 뒤 시작한다.
+기록은 호스트 `ros1-port/docker/artifacts/ctrl_start_*` 아래 bags·raw.bag·follower에 남는다.
+실행마다 새 이름을 사용한다. `run_dir:=절대경로`를 지정하면 해당 경로를 사용하므로
+기록 보존을 위해 실행별 새 디렉터리를 지정한다. 컨테이너 경로는 호스트 bind mount
+안의 경로를 사용한다.
+
+수신 전용 점검은 `roslaunch ctrl_start.launch drive:=false`이며, 종료 후 주행 launch를
+별도로 실행한다. `bag:=false`는 양쪽 기록기를 끄고 `raw:=false`는 원본 센서 기록기만 끈다.
+종료는 Ctrl+C 한 번 후 정지·Manual/P 인계를 확인한다. MORAI 장면 로드·채널 Connect는
+별도로 준비하며 이 launch에는 자동 주행 감독이 없다.
+
+호스트에서 컨테이너 진입과 launch를 한 명령으로 실행할 수도 있다:
+
+```bash
+bash ros1-port/docker/run.sh --receive-root roslaunch ctrl_start.launch
+```
+
+기존 `run_course.sh`도 동일 launch를 사용한다. bash 래퍼의 무인자 기본값은
+기존대로 `drive:=false`다. 래퍼는 추가로 console.log 원문 저장·화면 출력 축소·실행별
+ROS 로그 경로 설정을 제공한다. 직접 launch의 ROS 로그는 기본 ROS 로그 경로를 따른다.
+Docker를 새로 만들거나 ROS2 비교 원본을 빌드할 필요는 없다. 기존 이미지·워크스페이스
+빌드가 준비되어 있어야 한다.
 
 ## 시작점부터 실행
 

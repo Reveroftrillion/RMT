@@ -17,7 +17,7 @@ import onnxruntime as ort
 
 sys.dont_write_bytecode = True
 WS = Path(__file__).resolve().parents[1]
-BASELINE = WS.parent / '2026foscar-competition'
+BASELINE = WS.parent / '2026_CTRL_competition'
 
 
 def load(base, name):

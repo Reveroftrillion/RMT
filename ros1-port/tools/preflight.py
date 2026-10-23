@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 WS = Path(__file__).resolve().parents[1]
 REPOSITORY = WS.parent
-SOURCE = REPOSITORY / '2026foscar-competition'
+SOURCE = REPOSITORY / '2026_CTRL_competition'
 
 
 def main():

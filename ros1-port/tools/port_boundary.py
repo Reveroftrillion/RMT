@@ -6,7 +6,7 @@ import re
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / '2026foscar-competition' / 'src'
+SOURCE = ROOT / '2026_CTRL_competition' / 'src'
 DESTINATION = ROOT / 'ros1-port' / 'src'
 
 

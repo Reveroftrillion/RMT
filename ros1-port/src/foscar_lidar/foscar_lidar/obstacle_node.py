@@ -832,7 +832,12 @@ class ObstacleNode(Node):
             # support; keep non-tunnel returns and the clustering policy.
             asphalt = (raw[:, 3] >= self.road_intensity_min) & (raw[:, 3] <= self.road_intensity_max)
             plane = estimate_material_ground_plane(pts, asphalt)
-            height_region = material_height_region(pts, plane, asphalt, self.roi_x_max, self.roi_y_abs)
+            paint_support = None
+            if filter_zero:
+                paint_support = ((raw[:, 3] >= self.paint_intensity_min)
+                                 & (raw[:, 3] <= self.paint_intensity_max))
+            height_region = material_height_region(pts, plane, asphalt, self.roi_x_max, self.roi_y_abs,
+                                                   additional_mask=paint_support)
         # Highway: how far ahead a car body is still met by a ring at this scan's pitch (sight.py). A blind stretch
         # reaching the end of the ROI means a car can come up unseen: the sight ends where it starts.
         self.sight=None
