@@ -525,9 +525,18 @@ class Avoid(BehaviorState):
         return any(0. < m.box.s_min - ctx.s <= self.enter_distance_m or m.box.s_min <= ctx.s <= m.box.s_max
                    for m in self.memory)
 
+    def slalom_in_progress(self, s: float) -> bool:
+        plan = self.slalom
+        return (plan is not None and plan.blocked_at is None and not plan.return_blocked
+                and any(st + ln > s for _, st, ln in self.slalom_moves(plan, s)))
+
     def check_exit(self, ctx: Context) -> bool:
         self.observe(ctx)
         if self.memory:
+            return False
+        if ctx.mission_name == 'TUNNEL' and self.slalom_in_progress(ctx.s):
+            # An adopted entry can still be ahead, with offset_now == 0.
+            # A sparse scan must not cancel it before the first lateral motion.
             return False
         if ctx.mission_name in ('TUNNEL', 'STATIC_OBSTACLE') and self.slalom is not None and abs(self.offset_now(ctx.s)) > .05:
             return False  # back to 0 is the slalom's own last move
@@ -1054,6 +1063,17 @@ class Avoid(BehaviorState):
                     # An infeasible turn requires reaching the hold at rest, never a fixed crawl.
                     cap = math.sqrt(fit*fit + 2.*self.slalom_decel_mps2*(ctx.lateral_hold_s-ctx.s))
                     return Target(state=self.name, v_max=cap)
+            if ctx.mission_name == 'TUNNEL' and not self.memory and self.slalom_in_progress(ctx.s):
+                # Keep the already checked entry/return across an empty scan.
+                # New observations still use obstacle_target; the BEV guard above
+                # still checks freshness and occupancy. No obstacle is remembered.
+                target = self.slalom_output(ctx, [])
+                moves = self.slalom_moves(self.slalom, ctx.s)
+                end = max(st + ln for _, st, ln in moves)
+                if not paved_moves(ctx, self.slalom_origin, moves, ctx.s, end, self.front_m,
+                                   self.rear_overhang_m, self.path_planner(ctx).half):
+                    target.v_max = 0.  # updated walls may invalidate the old curve
+                return target
             return self.obstacle_target(ctx)
         if not self.memory and self.lateral_started and self.return_start_s is not None:
             return Target(state=self.name, lat_offset=self.prev_d, v_max=self.held_speed(ctx),

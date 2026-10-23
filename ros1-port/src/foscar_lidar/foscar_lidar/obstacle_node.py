@@ -55,7 +55,7 @@ import uuid
 from collections import deque
 from time import perf_counter
 
-from .ground import estimate_ground_plane, estimate_material_ground_plane, material_height_region, relative_height
+from .ground import estimate_ground_plane, estimate_material_ground_plane, material_height_region, relative_height, region as ground_region
 from .sight import blind_bands, pitch_deg
 
 import numpy as np
@@ -874,6 +874,12 @@ class ObstacleNode(Node):
             # taken for paint 11.8 m before it (2026-09-29 CP14, raw points); floor paint p99 is 112.
             paint=((raw[:,3]>=self.paint_intensity_min)&(raw[:,3]<=self.paint_intensity_max)
                    &(pts[:,2]<self.paint_max_z))
+            # Inside an accepted road-plane region, the existing ground/size
+            # gates distinguish floor paint from raised bright bodies. The
+            # legacy fixed-height paint filter remains outside that support.
+            if plane is not None:
+                corrected = ground_region(pts) if height_region is None else height_region
+                paint &= ~corrected
             zero_keep=(raw[:,3]!=0.)&~road&~paint
             pts=pts[zero_keep]
         intensity=raw[zero_keep,3].copy() if filter_zero and has_int else None
@@ -1224,7 +1230,10 @@ class ObstacleNode(Node):
             if tr.misses == 0:
                 tr.kind = self.classify(tr)          # 프레임당 한 번 (히스테리시스 상태 갱신)
             held = self.tunnel_held_near(tr)
+            # Tunnel occupancy is a current road observation, as on the highway.
+            # Semantic events below still require the existing confirmation gate.
             if (tr.misses == 0 or held) and (tr.hits >= self.confirm_frames or self.highway_active() or held
+                                   or self.tunnel_owned()
                                    or (self.ring_fp_first and self.ring_window())):
                 relevant, observe = (self.output_gates(tr, ego_idx, s_shift) if tr.hits >= self.confirm_frames or held
                                      else (False,False))

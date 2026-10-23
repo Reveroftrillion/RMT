@@ -1,28 +1,25 @@
 # ROS1 / MORAI 실행 안내
 
-로터리 수정 후 사용자 직접 주행2회 모두 FINISH·최종 속도 약0을 확인했다.
-[최신 두 완주 기록과 남은 검증](docs/USER_FULLCOURSE_2026-10-23.md)을 참고한다.
-공식 점수·충돌·Manual/P 인계는 이 CSV만으로 확정하지 않는다.
+2026-10-23 최신 수정 후 **터널 왼쪽·중앙·오른쪽 단일 상자 장면에서 각1회 감독 완주**했다.
+세 주행 모두 제공 CP 반경15/15 통과·원본 충돌 보고0·정지/Manual/P 인계,
+생산 소스349개 변화0을 확인했다. 이번 묶음 전체는5회 중4회 완료이며,
+수정 전 왼쪽 반복1회는 실제 충돌로 중단해 원본을 보존했다.
 
-최신 [로터리 정지 수정·실제 검증](docs/ROUNDABOUT_WAIT_2026-10-23.md)은
-CP1~9·로터리 출구·s941.45m 종료, 원본 충돌 유효0·정지/Manual/P를 확인했다.
-로터리 지면 보정 누락만 수정했고 전체 회귀952 PASS/기존 정책 기대값 충돌1 FAIL이다.
-위 부분 시험은 로터리 뒤에서 종료했다. 다음 주행 전에는 원래 시작점 Reset·재연결이 필요하다.
+최종 계산 회귀는979개 중978 PASS/기존 ROUNDABOUT 기대값1 FAIL/skip0, 도구28 PASS다.
+합성 조합1,167개 중 원거리 연속 장애물4조건은 실패 상태다.
+다음 실제 시험은 두 번째 장애물의 진행 중 재계획·제동, 터널 보행자 재진입·차단 해제와
+관측 공백 재현이다. 각 배치1회 성공은 반복 안정성이나 공식 점수 확인을 뜻하지 않는다.
+Windows·새 catkin/native 설치 빌드는 이번 단계에서 실행하지 않았다.
 
-정적 정지 기준점 수정은 오프라인 알고리즘950·도구9 검사를 통과했다.
-이후 사용자가 최신 main으로 다시 완주했다고 보고했고 해당 follower의 FINISH·최종 정지도 확인했다.
-[호스트 실행·사용자 완주·현재 남은 작업](docs/HOST_ROSLAUNCH_2026-10-23.md)을 먼저 확인한다.
-[정적 수정 당시 기록](docs/STATIC_STOP_2026-10-23.md)과 아래 감독 완주는 이 사용자 시험 전 결과다.
+[터널 수정·실험 기록](docs/TUNNEL_CONTINGENCY_2026-10-23.md) ·
+[최종 검증 요약](docs/tunnel-contingency-20261023/batch-01/final-state-right-complete.json) ·
+[현재 작업 계획](docs/DEVELOPMENT_WORKFLOW.md) · [전체 상태](../README.md)
 
-10/23 새 launch 실환경 검증·터널 수정 후 해당 조건 완주1회 결과는
-[오늘 수정·검증](docs/TUNNEL_MATERIAL_EDGE_2026-10-23.md)을 참고한다.
-입력 중단·공식 차선·변형 조건은 남아 있다. 이전 정적 정지는 위 후속 검증 범위를 참고한다.
-
-현재 상태와 미션별 결과는 [루트 README](../README.md),
-[이전 10/22 검증 범위](docs/STABILITY_AUDIT_2026-10-22.md)를 먼저 확인한다.
-2026-10-22 동일 sample_scene 감독 시험2회에서 CP 전체·END·충돌 채널 유효 충돌0·
-정지/Manual/P를 확인했다. [최신 반복 시험](docs/STABILITY_AUDIT_2026-10-22.md)을 참고한다.
-이전 수동 bag의 FINISH와 구분하며, 터널 이전 실패·공식 차선 감점·변형 조건은 남아 있다.
+앞선 [사용자 완주2회](docs/USER_FULLCOURSE_2026-10-23.md),
+[로터리 수정](docs/ROUNDABOUT_WAIT_2026-10-23.md),
+[정적 수정](docs/STATIC_STOP_2026-10-23.md),
+[터널 재질 수정](docs/TUNNEL_MATERIAL_EDGE_2026-10-23.md),
+[10/22 반복 검증](docs/STABILITY_AUDIT_2026-10-22.md)은 당시 결과로 보존한다.
 
 ## 환경 구축
 
@@ -196,7 +193,8 @@ YOLO JSONL의 영구 보존은 이 래퍼만으로 보장하지 않는다.
 ## 검증·개발
 
 [현재 작업 계획](docs/DEVELOPMENT_WORKFLOW.md),
-[알고리즘·native 검사 요약](docs/verification-20261022/checks-summary.json),
+[최신 터널 실험·검사 요약](docs/tunnel-contingency-20261023/batch-01/final-state-right-complete.json),
+[이전10/22 알고리즘·native 검사](docs/verification-20261022/checks-summary.json),
 [파일·미션 안내](docs/FILE_MISSIONS_2026-10-22.md),
 [원래 이식 변경](docs/CHANGES.md)를 참고한다.
 
