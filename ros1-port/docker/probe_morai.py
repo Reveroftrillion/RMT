@@ -17,7 +17,7 @@ import time
 import numpy as np
 
 PORT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('rmt_wire', PORT / 'src/foscar_control/foscar_control/core.py')
+spec = importlib.util.spec_from_file_location('rmt_wire', PORT / 'src/ctrl_control/ctrl_control/ctrl_core.py')
 wire = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(wire)
 CHANNELS = {909: 'competition_status', 9111: 'ego_status', 1111: 'gps',

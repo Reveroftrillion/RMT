@@ -6,7 +6,7 @@ from pathlib import Path
 import socket
 import time
 
-from foscar_control.core import parse_status
+from ctrl_control.ctrl_core import parse_status
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--seconds', type=float, default=5.)

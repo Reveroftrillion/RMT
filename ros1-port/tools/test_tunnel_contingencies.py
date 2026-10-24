@@ -5,7 +5,7 @@ import math
 import pytest
 
 import probe_tunnel_contingencies as probe
-from foscar_planning.state import Target
+from ctrl_planning.ctrl_state import Target
 
 
 def test_stop_and_yield_contracts_reject_an_unconstrained_target():

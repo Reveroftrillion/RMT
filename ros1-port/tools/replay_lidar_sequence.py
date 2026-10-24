@@ -85,17 +85,17 @@ def setup_runtime(baseline):
         if package.is_dir():
             sys.path.insert(0, str(package))
     ref = 'working tree'
-    sources = {f'src/foscar_lidar/foscar_lidar/{name}.py': sha256(
-        PORT / f'src/foscar_lidar/foscar_lidar/{name}.py') for name in ('ground', 'obstacle_node')}
+    sources = {f'src/ctrl_lidar/ctrl_lidar/{name}.py': sha256(
+        PORT / f'src/ctrl_lidar/ctrl_lidar/{name}.py') for name in ('ground', 'obstacle_node')}
     if baseline:
         ref = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=PORT.parent, text=True).strip()
-        package = importlib.import_module('foscar_lidar')
+        package = importlib.import_module('ctrl_lidar')
         for name in ('ground', 'obstacle_node'):
-            path = 'ros1-port/src/foscar_lidar/foscar_lidar/' + name + '.py'
+            path = 'ros1-port/src/ctrl_lidar/ctrl_lidar/' + name + '.py'
             source = subprocess.check_output(['git', 'show', ref + ':' + path], cwd=PORT.parent)
             import hashlib
             sources[path[len('ros1-port/'):]] = hashlib.sha256(source).hexdigest()
-            key = 'foscar_lidar.' + name
+            key = 'ctrl_lidar.' + name
             module = importlib.util.module_from_spec(importlib.util.spec_from_loader(key, loader=None))
             filename = '<' + ref + ':' + path + '>'
             module.__file__ = filename
@@ -110,22 +110,22 @@ def replay(args):
     import numpy as np
     import yaml
     ros_stubs, source_ref, sources = setup_runtime(args.baseline_head)
-    from foscar_lidar import obstacle_node as detection
-    from foscar_ros1 import point_cloud2 as pc2
+    from ctrl_lidar import ctrl_obstacle_node as detection
+    from ctrl_ros1 import ctrl_point_cloud2 as pc2
     from sensor_msgs.msg import PointField
     from std_msgs.msg import Header, String
     from nav_msgs.msg import Odometry
-    from foscar_control.core import Route
-    from foscar_control.mission_config import load_mission_config
-    from foscar_planning.mission import MissionSupervisor
-    from foscar_planning.state import Behavior, Context
-    from foscar_planning.states.cruise import Cruise
-    from foscar_planning.states.avoid import Avoid
-    from foscar_planning.states.tunnel import Tunnel
-    from foscar_planning.lane_prediction import LaneMap
-    from foscar_planning.tunnel_corridor import WallMemory
-    from foscar_planning.frenet import to_frenet
-    from foscar_planning.states import avoid as avoid_module
+    from ctrl_control.ctrl_core import Route
+    from ctrl_control.ctrl_mission_config import load_mission_config
+    from ctrl_planning.ctrl_mission import MissionSupervisor
+    from ctrl_planning.ctrl_state import Behavior, Context
+    from ctrl_planning.states.ctrl_cruise import Cruise
+    from ctrl_planning.states.ctrl_avoid import Avoid
+    from ctrl_planning.states.ctrl_tunnel import Tunnel
+    from ctrl_planning.ctrl_lane_prediction import LaneMap
+    from ctrl_planning.ctrl_tunnel_corridor import WallMemory
+    from ctrl_planning.ctrl_frenet import to_frenet
+    from ctrl_planning.states import ctrl_avoid as avoid_module
 
     args.output.mkdir(parents=True, exist_ok=False)
     meta = json.loads((args.input / 'metadata.json').read_text())
@@ -136,21 +136,21 @@ def replay(args):
     if tf['parent'] != 'base_link' or tf['rotation'] != [0., 0., 0., 1.]:
         raise ValueError('Replay currently requires the recorded unrotated base_link<-lidar transform')
     params = dict(use_tf=False, publish_markers=False,
-                  link_set=str(PORT / 'src/foscar_bringup/maps/link_set.json'),
+                  link_set=str(PORT / 'src/ctrl_bringup/maps/link_set.json'),
                   **dict(zip(('lidar_x', 'lidar_y', 'lidar_z'), tf['translation'])),
-                  **{'highway.config': str(PORT / 'src/foscar_planning/config/highway.yaml'),
-                     'highway.mission_config': str(PORT / 'src/foscar_planning/config/missions.yaml')})
+                  **{'highway.config': str(PORT / 'src/ctrl_planning/config/highway.yaml'),
+                     'highway.mission_config': str(PORT / 'src/ctrl_planning/config/missions.yaml')})
     node = detection.ObstacleNode(parameter_overrides=[ros_stubs.Parameter(k, value=v) for k, v in params.items()])
     node.track_namespace = 'offline'
     node.route_xy = np.array(meta['route'])
     node.route_s = np.r_[0., np.cumsum(np.linalg.norm(np.diff(node.route_xy, axis=0), axis=1))]
     route = Route(node.route_xy)
-    road = LaneMap(json.loads((PORT / 'src/foscar_bringup/maps/link_set.json').read_text()))
-    cfg = yaml.safe_load((PORT / 'src/foscar_planning/config/behavior.yaml').read_text())['behavior_node']['ros__parameters']
+    road = LaneMap(json.loads((PORT / 'src/ctrl_bringup/maps/link_set.json').read_text()))
+    cfg = yaml.safe_load((PORT / 'src/ctrl_planning/config/behavior.yaml').read_text())['behavior_node']['ros__parameters']
     avoid = Avoid(**{k[6:]: v for k, v in cfg.items() if k.startswith('avoid.')})
     tunnel = Tunnel(**{k[7:]: v for k, v in cfg.items() if k.startswith('tunnel.')})
     behavior = Behavior([Cruise(**{k[7:]: v for k, v in cfg.items() if k.startswith('cruise.')}), avoid, tunnel])
-    mission = MissionSupervisor(load_mission_config(PORT / 'src/foscar_planning/config/missions.yaml'))
+    mission = MissionSupervisor(load_mission_config(PORT / 'src/ctrl_planning/config/missions.yaml'))
     walls, corridor = WallMemory(), None
     clock, saved, road_failures = [0.], {}, []
     detection.perf_counter = lambda: clock[0]

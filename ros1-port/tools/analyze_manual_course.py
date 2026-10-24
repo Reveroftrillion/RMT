@@ -12,8 +12,8 @@ import math
 from pathlib import Path
 import numpy as np
 import rosbag
-from foscar_control.core import Route
-from foscar_control.mission_config import read_checkpoints
+from ctrl_control.ctrl_core import Route
+from ctrl_control.ctrl_mission_config import read_checkpoints
 
 
 def main():
@@ -22,8 +22,8 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
     port=Path(__file__).resolve().parents[1]
-    route=Route(np.loadtxt(port/'src/foscar_bringup/routes/global_path.txt'))
-    checkpoints=read_checkpoints(port/'src/foscar_bringup/routes/checkpoints.txt')
+    route=Route(np.loadtxt(port/'src/ctrl_bringup/routes/global_path.txt'))
+    checkpoints=read_checkpoints(port/'src/ctrl_bringup/routes/checkpoints.txt')
     cps=[dict(name='START',xy=route.points[0],radius=3.,station=0.)]
     cps += [dict(name='CP'+str(k),xy=v['xy'],radius=v['radius'],station=route.project(*v['xy'])[0]) for k,v in checkpoints.items()]
     cps.sort(key=lambda p:p['station'])

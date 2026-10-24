@@ -7,6 +7,8 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from ctrl_names import current_relative
 
 
 WS = Path(__file__).resolve().parents[1]
@@ -16,10 +18,14 @@ REPO = WS.parent
 def main():
     results = WS / 'verification/.work' / ('identifier-refactor-' + datetime.now().strftime('%Y%m%d-%H%M%S'))
     results.mkdir(parents=True, exist_ok=False)
+    if '--ctrl-names-only' in sys.argv:
+        return subprocess.run([sys.executable,'-X','utf8',str(WS/'tools/check_ctrl_names.py'),
+                               '--output',str(results)],cwd=REPO).returncode
     tracked = subprocess.check_output(['git', 'ls-files', '-z'], cwd=REPO).decode('utf-8').split('\0')
     # Resolve the reference directory rename before it has been committed too.
     tracked = [name.replace('2026foscar-competition/', '2026_CTRL_competition/', 1)
                if name.startswith('2026foscar-competition/') else name for name in tracked]
+    tracked=[current_relative(name) if name.startswith('ros1-port/src/') else name for name in tracked]
     protected = [REPO / name for name in tracked if name and (
         name.startswith('2026_CTRL_competition/') or
         (name.startswith('ros1-port/') and (name.endswith('.json') or name.endswith('.md'))
@@ -42,7 +48,7 @@ def main():
         compile(path.read_bytes(), str(path), 'exec')
     print('syntax: PASS (' + str(len(set(python_files))) + ' Python files)', flush=True)
     run('identifier-ast', [str(WS / 'tools/check_identifier_refactor.py')])
-    run('adapter', ['-m', 'unittest', 'discover', '-s', str(WS / 'src/foscar_ros1/test'), '-v'])
+    run('adapter', ['-m', 'unittest', 'discover', '-s', str(WS / 'src/ctrl_ros1/test'), '-v'])
     # Explicit sys.path supports embeddable Python's isolated ._pth configuration.
     run('packaging-unit', ['-c', 'import sys, unittest; sys.path.insert(0,' + repr(str(WS / 'tools')) +
                           '); suite=unittest.defaultTestLoader.loadTestsFromName("test_packaging"); '
@@ -64,8 +70,10 @@ def main():
     differential.mkdir()
     for filename in ('pytest_bridge.py', 'ros_stubs.py'):
         shutil.copy2(WS / 'verification' / filename, differential / filename)
+    for filename in ('ctrl_names.py','ctrl_name_map.json'):
+        shutil.copy2(WS/'tools'/filename,differential/filename)
     # ros_stubs resolves the production adapter relative to its own file.
-    shutil.copytree(WS / 'src/foscar_ros1', results / 'src/foscar_ros1',
+    shutil.copytree(WS / 'src/ctrl_ros1', results / 'src/ctrl_ros1',
                     ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     run('differential', module_command(WS / 'verification/run_differential.py',
         'module.HERE=Path(' + repr(str(differential)) + '); raise SystemExit(module.main())'))

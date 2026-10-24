@@ -133,8 +133,8 @@ def inspect(args):
     for package in (PORT / 'src').iterdir():
         if package.is_dir():
             sys.path.insert(0, str(package))
-    source_paths = [PORT / 'src/foscar_lidar/foscar_lidar/ground.py',
-                    PORT / 'src/foscar_lidar/foscar_lidar/obstacle_node.py']
+    source_paths = [PORT / 'src/ctrl_lidar/ctrl_lidar/ctrl_ground.py',
+                    PORT / 'src/ctrl_lidar/ctrl_lidar/ctrl_obstacle_node.py']
     source_hashes = {str(path.relative_to(PORT)): sha256(path) for path in source_paths}
     source_ref = 'working tree'
     if args.baseline_head:
@@ -142,12 +142,12 @@ def inspect(args):
         # source replacement, alternate expectations or original-tree tests.
         repo = PORT.parent
         source_ref = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip()
-        package = importlib.import_module('foscar_lidar')
+        package = importlib.import_module('ctrl_lidar')
         for path in source_paths:
             relative = str(path.relative_to(repo))
             source = subprocess.check_output(['git', 'show', source_ref + ':' + relative], cwd=repo)
             source_hashes[str(path.relative_to(PORT))] = hashlib.sha256(source).hexdigest()
-            name = 'foscar_lidar.' + path.stem
+            name = 'ctrl_lidar.' + path.stem
             module = importlib.util.module_from_spec(importlib.util.spec_from_loader(name, loader=None))
             filename = '<' + source_ref + ':' + relative + '>'
             module.__file__ = filename
@@ -155,10 +155,10 @@ def inspect(args):
             sys.modules[name] = module
             setattr(package, path.stem, module)
             exec(compile(source, filename, 'exec'), module.__dict__)
-    from foscar_lidar.ground import estimate_ground_plane, region, relative_height
-    from foscar_lidar.obstacle_node import ObstacleNode
-    from foscar_ros1.parameter import Parameter
-    from foscar_ros1 import point_cloud2
+    from ctrl_lidar.ctrl_ground import estimate_ground_plane, region, relative_height
+    from ctrl_lidar.ctrl_obstacle_node import ObstacleNode
+    from ctrl_ros1.ctrl_parameter import Parameter
+    from ctrl_ros1 import ctrl_point_cloud2 as point_cloud2
     from sensor_msgs.msg import PointField
     from std_msgs.msg import Header, String
 
@@ -176,7 +176,7 @@ def inspect(args):
               for i, name in enumerate(('x', 'y', 'z', 'intensity')[:raw.shape[1]])]
     for shift in dict.fromkeys([0.] + args.diagnostic_z_shift):
         params = dict(use_tf=False, publish_markers=False,
-                      link_set=str(PORT / 'src/foscar_bringup/maps/link_set.json'))
+                      link_set=str(PORT / 'src/ctrl_bringup/maps/link_set.json'))
         node = ObstacleNode(parameter_overrides=[Parameter(k, value=v) for k, v in params.items()])
         try:
             if context.get('ego'):

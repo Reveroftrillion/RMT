@@ -21,7 +21,7 @@ BASELINE = WS.parent / '2026_CTRL_competition'
 
 
 def load(base, name):
-    path = base / 'src/foscar_camera/foscar_camera/yolo_onnx.py'
+    path = base / ('src/foscar_camera/foscar_camera/yolo_onnx.py' if base == BASELINE else 'src/ctrl_camera/ctrl_camera/ctrl_yolo_onnx.py')
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -46,7 +46,7 @@ def main():
     runs = []
     for label, base in [('original', BASELINE), ('port', WS)]:
         module = load(base, label + '_yolo')
-        path = base / 'src/foscar_camera/models/best.onnx'
+        path = base / ('src/foscar_camera/models/best.onnx' if base == BASELINE else 'src/ctrl_camera/models/best.onnx')
         run = dict(label=label, sha256=hashlib.sha256(path.read_bytes()).hexdigest())
         try:
             detector = module.Detector(path, confidence=.4, threads=4)

@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 TOOLS = Path(__file__).resolve().parent
 WS = TOOLS.parent
-SCRIPTS = WS / 'src/foscar_bringup/scripts'
+SCRIPTS = WS / 'src/ctrl_bringup/scripts'
 spec = importlib.util.spec_from_file_location('target_checker', TOOLS / 'check_noetic_environment.py')
 checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checker)
@@ -24,24 +24,24 @@ class ReplacedProcess(Exception):
 
 class PackagingTests(unittest.TestCase):
     def test_camera_delay_waits_five_wall_seconds_then_execs_scoped_launch(self):
-        helper = runpy.run_path(str(SCRIPTS / 'delay_wall'))
-        args = ['delay_wall', '5.0', 'foscar_bringup', 'competition_delayed.launch', 'camera_port:=9208', '__name:=delay', '__log:=ignored']
+        helper = runpy.run_path(str(SCRIPTS / 'ctrl_delay_wall'))
+        args = ['delay_wall', '5.0', 'ctrl_bringup', 'ctrl_competition_delayed.launch', 'camera_port:=9208', '__name:=delay', '__log:=ignored']
         with patch.object(sys, 'argv', args), patch('time.monotonic', side_effect=[100., 100., 105.]), \
                 patch('time.sleep') as sleep, patch('signal.signal'), \
                 patch('os.execvp', side_effect=ReplacedProcess) as execute:
             with self.assertRaises(ReplacedProcess):
                 helper['main']()
         sleep.assert_called_once_with(5.)
-        execute.assert_called_once_with('roslaunch', ['roslaunch', 'foscar_bringup', 'competition_delayed.launch', 'camera_port:=9208'])
+        execute.assert_called_once_with('roslaunch', ['roslaunch', 'ctrl_bringup', 'ctrl_competition_delayed.launch', 'camera_port:=9208'])
 
     def test_shutdown_during_camera_delay_prevents_child_start(self):
-        helper = runpy.run_path(str(SCRIPTS / 'delay_wall'))
+        helper = runpy.run_path(str(SCRIPTS / 'ctrl_delay_wall'))
         handlers = {}
         def remember(number, callback):
             handlers[number] = callback
         def interrupt(_seconds):
             handlers[signal.SIGINT](signal.SIGINT, None)
-        with patch.object(sys, 'argv', ['delay_wall', '5', 'foscar_bringup', 'competition_delayed.launch']), \
+        with patch.object(sys, 'argv', ['delay_wall', '5', 'ctrl_bringup', 'ctrl_competition_delayed.launch']), \
                 patch('signal.signal', side_effect=remember), patch('time.monotonic', return_value=100.), \
                 patch('time.sleep', side_effect=interrupt), patch('os.execvp') as execute:
             with self.assertRaises(SystemExit) as result:
@@ -50,7 +50,7 @@ class PackagingTests(unittest.TestCase):
         execute.assert_not_called()
 
     def test_invalid_delay_is_not_silently_accepted(self):
-        helper = runpy.run_path(str(SCRIPTS / 'delay_wall'))
+        helper = runpy.run_path(str(SCRIPTS / 'ctrl_delay_wall'))
         for delay in ('-1', 'nan', 'inf'):
             with self.subTest(delay=delay), patch.object(sys, 'argv', ['delay_wall', delay, 'pkg', 'file.launch']), patch('os.execvp') as execute:
                 with self.assertRaises(ValueError):
@@ -58,7 +58,7 @@ class PackagingTests(unittest.TestCase):
                 execute.assert_not_called()
 
     def test_bag_groups_use_one_stem_and_preserve_native_command_arguments(self):
-        helper = runpy.run_path(str(SCRIPTS / 'record_bag'))
+        helper = runpy.run_path(str(SCRIPTS / 'ctrl_record_bag'))
         fake = types.ModuleType('rosgraph')
         fake.Master = lambda _name: types.SimpleNamespace(getParam=lambda _key: 'run_20261013_093000')
         with tempfile.TemporaryDirectory(prefix='foscar_bag_test_') as directory:
@@ -80,7 +80,7 @@ class PackagingTests(unittest.TestCase):
         read_bytes = Path.read_bytes
         def changed(path):
             data = read_bytes(path)
-            if path.as_posix().endswith('foscar_bringup/config/low_speed.yaml'):
+            if path.as_posix().endswith('ctrl_bringup/config/low_speed.yaml'):
                 return bytes([data[0] ^ 1]) + data[1:]
             return data
         with patch.object(Path, 'read_bytes', changed):

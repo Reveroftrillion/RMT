@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--obstacle-source', type=Path,
-                        help='preserved pre-change obstacle_node.py for comparison')
+                        help='preserved pre-change ctrl_obstacle_node.py for comparison')
     args = parser.parse_args()
     original_setup = sequence.setup_runtime
     cache, rows, classifications = {}, [], []
@@ -32,27 +32,27 @@ def main():
 
     def setup(baseline):
         result = original_setup(baseline)
-        from foscar_lidar import obstacle_node as detection
+        from ctrl_lidar import ctrl_obstacle_node as detection
         if args.obstacle_source:
-            name = 'foscar_lidar.recorded_obstacle_baseline'
+            name = 'ctrl_lidar.recorded_obstacle_baseline'
             module = importlib.util.module_from_spec(importlib.util.spec_from_loader(name, loader=None))
             exec(compile(args.obstacle_source.read_bytes(), str(args.obstacle_source), 'exec'), module.__dict__)
             module.perf_counter = lambda: detection.perf_counter()
             detection.ObstacleNode = module.ObstacleNode
-        from foscar_planning.behavior_node import BehaviorNode
-        from foscar_planning.state import Behavior
-        from foscar_planning.states.yield_ import Yield
-        from foscar_control.core import Route
-        from foscar_control.mission_config import load_mission_config
-        from foscar_planning.mission import MissionSupervisor
+        from ctrl_planning.ctrl_behavior_node import BehaviorNode
+        from ctrl_planning.ctrl_state import Behavior
+        from ctrl_planning.states.ctrl_yield import Yield
+        from ctrl_control.ctrl_core import Route
+        from ctrl_control.ctrl_mission_config import load_mission_config
+        from ctrl_planning.ctrl_mission import MissionSupervisor
         import numpy as np
         import yaml
 
         port = sequence.PORT
         route = Route(np.asarray(json.loads((args.input/'metadata.json').read_text())['route']))
-        config = yaml.safe_load((port/'src/foscar_planning/config/behavior.yaml').read_text())['behavior_node']['ros__parameters']
+        config = yaml.safe_load((port/'src/ctrl_planning/config/behavior.yaml').read_text())['behavior_node']['ros__parameters']
         yielding = Yield(**{k[6:]: v for k, v in config.items() if k.startswith('yield.')})
-        supervisor = MissionSupervisor(load_mission_config(port/'src/foscar_planning/config/missions.yaml'))
+        supervisor = MissionSupervisor(load_mission_config(port/'src/ctrl_planning/config/missions.yaml'))
         take_event = BehaviorNode.take_event
         original_cloud = detection.ObstacleNode.on_cloud
         original_classify = detection.ObstacleNode.classify
@@ -111,7 +111,7 @@ def main():
     sequence.setup_runtime = setup
     sequence.replay(SimpleNamespace(input=args.input, output=args.output, baseline_head=False,
         behavior=True, focus_x=-62., focus_y=-10.4))
-    source = args.obstacle_source or sequence.PORT/'src/foscar_lidar/foscar_lidar/obstacle_node.py'
+    source = args.obstacle_source or sequence.PORT/'src/ctrl_lidar/ctrl_lidar/ctrl_obstacle_node.py'
     summary = dict(frames=len(rows), states=dict(Counter(r['state'] for r in rows)),
         yield_target_types=dict(Counter(r['target_type'] for r in rows if r['state']=='YIELD')),
         obstacle_source=str(source), obstacle_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),

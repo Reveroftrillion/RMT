@@ -81,7 +81,7 @@ def replay(args):
     for package in (PORT/'src').iterdir():
         if package.is_dir():
             sys.path.insert(0, str(package))
-    source = PORT/'src/foscar_lidar/foscar_lidar/obstacle_node.py'
+    source = PORT/'src/ctrl_lidar/ctrl_lidar/ctrl_obstacle_node.py'
     working_digest = digest(source)
     source_ref = 'working tree'
     model_digest = working_digest
@@ -89,25 +89,25 @@ def replay(args):
         source_ref = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=PORT.parent, text=True).strip()
         raw = subprocess.check_output(['git', 'show', source_ref+':'+str(source.relative_to(PORT.parent))], cwd=PORT.parent)
         model_digest = hashlib.sha256(raw).hexdigest()
-        package = importlib.import_module('foscar_lidar')
-        name = 'foscar_lidar.obstacle_node'
+        package = importlib.import_module('ctrl_lidar')
+        name = 'ctrl_lidar.ctrl_obstacle_node'
         module = importlib.util.module_from_spec(importlib.util.spec_from_loader(name, loader=None))
-        module.__file__ = '<'+source_ref+':obstacle_node.py>'
+        module.__file__ = '<'+source_ref+':ctrl_obstacle_node.py>'
         sys.modules[name] = module
         setattr(package, 'obstacle_node', module)
         exec(compile(raw, module.__file__, 'exec'), module.__dict__)
-    from foscar_lidar.obstacle_node import ObstacleNode
-    from foscar_lidar.ground import region
-    from foscar_ros1.parameter import Parameter
-    from foscar_ros1 import point_cloud2
+    from ctrl_lidar.ctrl_obstacle_node import ObstacleNode
+    from ctrl_lidar.ctrl_ground import region
+    from ctrl_ros1.ctrl_parameter import Parameter
+    from ctrl_ros1 import ctrl_point_cloud2 as point_cloud2
     from std_msgs.msg import Header, String
     from sensor_msgs.msg import PointField
     from replay_lidar_ground import trace_calculation
     inputs = json.loads((args.input/'inputs.json').read_text())
     node = ObstacleNode(parameter_overrides=[Parameter('use_tf', value=False),
         Parameter('publish_markers', value=False),
-        Parameter('link_set', value=str(PORT/'src/foscar_bringup/maps/link_set.json'))])
-    route = np.loadtxt(PORT/'src/foscar_bringup/routes/global_path.txt')[:, :2]
+        Parameter('link_set', value=str(PORT/'src/ctrl_bringup/maps/link_set.json'))])
+    route = np.loadtxt(PORT/'src/ctrl_bringup/routes/global_path.txt')[:, :2]
     node.route_xy = route
     node.route_s = np.r_[0., np.cumsum(np.linalg.norm(np.diff(route, axis=0), axis=1))]
     fields = [PointField(name=name, offset=4*i, datatype=PointField.FLOAT32, count=1)

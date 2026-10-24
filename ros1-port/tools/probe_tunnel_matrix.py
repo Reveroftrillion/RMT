@@ -14,8 +14,8 @@ import time
 
 import numpy as np
 import probe_tunnel_contingencies as base
-from foscar_planning.mission import MissionSupervisor
-from foscar_control.core import FRONT_AXLE
+from ctrl_planning.ctrl_mission import MissionSupervisor
+from ctrl_control.ctrl_core import FRONT_AXLE
 
 
 def overlap(a, b):

@@ -38,7 +38,7 @@ class LaunchMetadataTests(unittest.TestCase):
             bag_name = values['/ros1_port/competition/bag_name']
             rosgraph = types.SimpleNamespace(Master=lambda _: types.SimpleNamespace(
                 getParam=lambda _: bag_name))
-            recorder = runpy.run_path(str(PORT / 'src/foscar_bringup/scripts/record_bag'))
+            recorder = runpy.run_path(str(PORT / 'src/ctrl_bringup/scripts/ctrl_record_bag'))
             with patch.dict(sys.modules, rosgraph=rosgraph), \
                  patch.object(sys, 'argv', ['record_bag', '--bag-dir', str(folder)]), \
                  patch.object(os, 'execvp') as execute:

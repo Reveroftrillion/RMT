@@ -2,6 +2,8 @@
 
 ## 작업 체계
 
+- 현재 팀명은 `CTRL`이다. 실행 패키지·자체 Python 모듈·실행 스크립트·launch는 `ctrl_*` 이름을 사용한다. ROS 토픽·노드명·파라미터·메시지 필드와 원본 작성자/URL/라이선스는 명명 정리와 구분해 보존한다. 이전 경로는 `ros1-port/tools/ctrl_name_map.json`으로 찾는다.
+
 - 이 저장소는 개인이 Codex를 이용해 개발한다. 과거 3팀 역할 분담은 당시 이력이며 앞으로 작성할 계획의 현재 작업 체계로 가정하지 않는다.
 - 현재 계획은 [DEVELOPMENT_WORKFLOW.md](ros1-port/docs/DEVELOPMENT_WORKFLOW.md), 문서 분류는 [MARKDOWN_INDEX.md](ros1-port/docs/MARKDOWN_INDEX.md)를 확인한다.
 - 새 작업은 개발 목표, 영향 파일, 구현 방법, 검증 방법, 완료 기준으로 정리한다. 다음 세션이 바로 재현할 수 있는 명령과 판단 근거를 남긴다.
@@ -28,7 +30,7 @@
 ## Git
 
 - 작업 시작 전 `git status --short`, `git branch --show-current`를 확인하고 사용자 변경을 보존한다.
-- ROS1 이식 기준 브랜치는 `feat/ros1-port`다. 현재 식별자·문서 정리 브랜치는 `refactor/identifiers-docs`다. 새 작업은 목적별 브랜치에서 진행한다.
+- ROS1 이식 기준 브랜치는 `feat/ros1-port`다. 현재 CTRL 명명 정리 브랜치는 `refactor/ctrl-names-20261024`다. 새 작업은 목적별 브랜치에서 진행한다.
 - 커밋 전 변경 범위와 `git diff --check`를 확인한다. 기존 파일의 whitespace 문제를 발견하면 이번 변경과 구분해 보고한다.
 - GitHub push와 `main` 병합은 사용자의 별도 지시가 있어야 한다. 과거 작업의 push 승인을 새 작업에 적용하지 않는다.
 - bag, build/devel/install, 다운로드 환경, 대용량 trace와 `docker/artifacts/`는 추적하지 않는다. 검증 요약과 재현 가능한 도구를 커밋 대상으로 검토한다.

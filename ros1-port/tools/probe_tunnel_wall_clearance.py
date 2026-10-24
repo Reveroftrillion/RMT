@@ -13,8 +13,8 @@ import sys
 
 sys.dont_write_bytecode = True
 import probe_tunnel_contingencies as probe
-from foscar_planning.frenet import to_frenet
-from foscar_planning.tunnel_corridor import WallMemory
+from ctrl_planning.ctrl_frenet import to_frenet
+from ctrl_planning.ctrl_tunnel_corridor import WallMemory
 
 
 def reconstruct(messages, runtime, at_s):

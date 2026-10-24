@@ -53,24 +53,24 @@ def modules_and_edges(names):
                 if target in modules:
                     edges[name].add(modules[target])
     # behavior_node imports these names from YAML/launch, with yield_ fallback.
-    behavior = modules.get('foscar_planning.behavior_node')
+    behavior = modules.get('ctrl_planning.ctrl_behavior_node')
     if behavior:
         for state in ('cruise', 'avoid', 'yield_', 'tunnel'):
-            edges[behavior].add(modules['foscar_planning.states.' + state])
+            edges[behavior].add(modules['ctrl_planning.states.' + state])
     return modules, edges
 
 
 def mission_tags(names):
     modules, edges = modules_and_edges(names)
     roots = {
-        '공통': ['foscar_control.bridge', 'foscar_control.localization', 'foscar_control.follower'],
-        '신호': ['foscar_camera.yolo_signal_node', 'foscar_camera.camera_bridge',
-               'foscar_planning.signal_stop'],
-        '정적': ['foscar_planning.states.avoid', 'foscar_planning.static_course'],
-        '보행자': ['foscar_planning.states.yield_'],
-        '회전교차로': ['foscar_planning.roundabout_planner', 'foscar_planning.circular_gap'],
-        '고속도로': ['foscar_planning.highway_runtime'],
-        '터널': ['foscar_planning.states.tunnel'],
+        '공통': ['ctrl_control.ctrl_bridge', 'ctrl_control.ctrl_localization', 'ctrl_control.ctrl_follower'],
+        '신호': ['ctrl_camera.ctrl_yolo_signal_node', 'ctrl_camera.ctrl_camera_bridge',
+               'ctrl_planning.ctrl_signal_stop'],
+        '정적': ['ctrl_planning.states.ctrl_avoid', 'ctrl_planning.ctrl_static_course'],
+        '보행자': ['ctrl_planning.states.ctrl_yield'],
+        '회전교차로': ['ctrl_planning.ctrl_roundabout_planner', 'ctrl_planning.ctrl_circular_gap'],
+        '고속도로': ['ctrl_planning.ctrl_highway_runtime'],
+        '터널': ['ctrl_planning.states.ctrl_tunnel'],
     }
     tags = defaultdict(set)
     for mission, seeds in roots.items():

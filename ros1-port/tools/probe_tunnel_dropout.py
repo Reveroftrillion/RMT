@@ -19,13 +19,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--baseline-avoid', type=Path,
-                        help='Read an immutable isolated pre-change avoid.py; other modules unchanged')
+                        help='Read an immutable isolated pre-change ctrl_avoid.py; other modules unchanged')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
-    source = matrix.base.PORT/'src/foscar_planning/foscar_planning/states/avoid.py'
+    source = matrix.base.PORT/'src/ctrl_planning/ctrl_planning/states/ctrl_avoid.py'
     if args.baseline_avoid:
         source = args.baseline_avoid
-        name = 'foscar_planning.states._dropout_baseline'
+        name = 'ctrl_planning.states._dropout_baseline'
         spec = importlib.util.spec_from_file_location(name, source)
         module = importlib.util.module_from_spec(spec)
         sys.modules[name] = module
