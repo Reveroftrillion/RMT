@@ -30,7 +30,7 @@
 ## Git
 
 - 작업 시작 전 `git status --short`, `git branch --show-current`를 확인하고 사용자 변경을 보존한다.
-- ROS1 이식 기준 브랜치는 `feat/ros1-port`다. 현재 CTRL 명명 정리 브랜치는 `refactor/ctrl-names-20261024`다. 새 작업은 목적별 브랜치에서 진행한다.
+- 현재 개발 기준은 `main`이다. ROS1 이식 기준은 과거 커밋 `c185c84024824fb5c2f4136e91a6b7b4e7bd02e7`로 확인한다. 병합 완료된 작업 브랜치는 정리했으며, 새 작업은 목적별 브랜치에서 진행하고 병합 후 삭제한다.
 - 커밋 전 변경 범위와 `git diff --check`를 확인한다. 기존 파일의 whitespace 문제를 발견하면 이번 변경과 구분해 보고한다.
 - GitHub push와 `main` 병합은 사용자의 별도 지시가 있어야 한다. 과거 작업의 push 승인을 새 작업에 적용하지 않는다.
 - bag, build/devel/install, 다운로드 환경, 대용량 trace와 `docker/artifacts/`는 추적하지 않는다. 검증 요약과 재현 가능한 도구를 커밋 대상으로 검토한다.
