@@ -7,13 +7,16 @@ import ast
 import copy
 from pathlib import Path
 import subprocess
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from ctrl_names import MAP, legacy_ast
 
 
 REPO = Path(__file__).resolve().parents[2]
 BASE = 'c185c84024824fb5c2f4136e91a6b7b4e7bd02e7'
 # 공개 인자/속성/함수명은 포함하지 않는다. 키는 클래스와 함수의 lexical 경로다.
 RENAMES = {
-    'foscar_camera/yolo_onnx.py': {
+    'ctrl_camera/ctrl_yolo_onnx.py': {
         'decode': {'classes': 'class_ids', 'keep': 'valid_rows', 'out': 'detections',
                    'i': 'detection_index', 'x': 'box_x', 'y': 'box_y',
                    'w': 'box_width', 'h': 'box_height', 'xy': 'image_box'},
@@ -23,7 +26,7 @@ RENAMES = {
         'Detector.__call__': {'h': 'image_height', 'w': 'image_width',
                               'nw': 'resized_width', 'nh': 'resized_height'},
     },
-    'foscar_camera/stop_lines.py': {
+    'ctrl_camera/ctrl_stop_lines.py': {
         'load_stop_points': {'out': 'stop_points', 'f': 'csv_stream',
                              'go': 'go_colors', 'c': 'color'},
         'project_lines': {'i': 'line_number', 'go': 'go_colors', 's': 'route_s'},
@@ -31,11 +34,11 @@ RENAMES = {
         'StopLineTable.__init__': {'spawn': 'spawn_route'},
         'StopLineTable.on_pose': {'offset': 's_offset'},
     },
-    'foscar_control/reference.py': {
+    'ctrl_control/ctrl_reference.py': {
         'ReferenceLine.__init__': {'gs': 'global_stations', 'pts': 'reference_points'},
         'ReferenceLine.valid_for': {'q': 'local_station'},
     },
-    'foscar_control/reference_control.py': {
+    'ctrl_control/ctrl_reference_control.py': {
         'step_reference': {'old': 'previous_reference', 'global_local': 'route_station',
                            'global_error': 'global_lateral_error', 'i': 'profile_index',
                            'j': 'next_profile_index', 'look_max': 'max_lookahead',
@@ -43,14 +46,14 @@ RENAMES = {
                            'same': 'matching_suffix', 'original_cap': 'original_speed_cap',
                            'decel': 'deceleration', 'source': 'state_source', 'out': 'output'},
     },
-    'foscar_control/speed_policy.py': {
+    'ctrl_control/ctrl_speed_policy.py': {
         'uncapped_highway_zones': {'begin': 'start_s', 'end': 'end_s', 'v': 'station'},
     },
-    'foscar_lidar/ground.py': {
+    'ctrl_lidar/ctrl_ground.py': {
         'estimate_ground_plane': {'rng': 'random_generator', 'idx': 'sample_indices',
                                   'best': 'best_inliers', 'count': 'best_inlier_count'},
     },
-    'foscar_lidar/free_space.py': {
+    'ctrl_lidar/ctrl_free_space.py': {
         'ray_box_evidence': {'safe': 'safe_direction', 'a': 'lower_intersections',
                              'b': 'upper_intersections', 'near': 'entry_parameter',
                              'far': 'exit_parameter', 'remaining': 'distance_beyond_box'},
@@ -61,7 +64,7 @@ RENAMES = {
                                  'o': 'local_origin', 'distance2': 'distance_squared',
                                  'radius2': 'radius_squared', 'u': 'cell_x', 'v': 'cell_y'},
     },
-    'foscar_planning/signal_stop.py': {
+    'ctrl_planning/ctrl_signal_stop.py': {
         'SignalStopPolicy.__init__': {'line': 'stop_line'},
         'SignalStopPolicy.current': {'line': 'stop_line', 'key': 'intersection_id',
                                      'x': 'candidate_line'},
@@ -69,12 +72,12 @@ RENAMES = {
         'SignalStopPolicy.observe': {'line': 'stop_line'},
         'SignalStopPolicy.apply': {'line': 'stop_line', 'stop': 'front_stop_s'},
     },
-    'foscar_ros1/executors.py': {
+    'ctrl_ros1/ctrl_executors.py': {
         'Executor._next': {'ready': 'ready_entities', 'remaining': 'remaining_timeout',
                            'delay': 'wait_seconds', 'duration': 'timer_remaining_ns'},
         'MultiThreadedExecutor._check_futures': {'unfinished': 'pending_futures'},
     },
-    'foscar_ros1/_entities.py': {
+    'ctrl_ros1/ctrl_entities.py': {
         'Timer.take': {'ahead': 'overdue_ns'},
     },
 }
@@ -113,10 +116,11 @@ def check():
     identifier_count = 0
     for relative, scopes in RENAMES.items():
         path = source_path(relative)
-        git_path = path.relative_to(REPO).as_posix()
+        current_git_path = path.relative_to(REPO).as_posix()
+        git_path={v:k for k,v in MAP['paths'].items()}.get(current_git_path,current_git_path)
         baseline = subprocess.check_output(['git', 'show', BASE + ':' + git_path], cwd=REPO).decode('utf-8')
         before = ast.parse(baseline)
-        after = ast.parse(path.read_text(encoding='utf-8'))
+        after = legacy_ast(path.read_text(encoding='utf-8'))
         before_names = scoped_names(before)
         after_names = scoped_names(after)
         restored = copy.deepcopy(after)

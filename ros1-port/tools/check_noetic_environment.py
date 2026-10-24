@@ -19,17 +19,19 @@ from pathlib import Path
 import platform
 import shlex
 import shutil
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from ctrl_names import executable_name, module_name
 
 
 WORKSPACE = Path(__file__).resolve().parents[1]
 PINNED = {'numpy': '1.24.4', 'onnxruntime-gpu': '1.23.2'}
 ENTRYPOINTS = {
-    'foscar_control': {'sensor_bridge': 'bridge', 'localization': 'localization', 'path_follower': 'follower'},
-    'foscar_lidar': {'obstacle_node': 'obstacle_node', 'lidar_bridge': 'lidar_bridge',
+    'ctrl_control': {'sensor_bridge': 'bridge', 'localization': 'localization', 'path_follower': 'follower'},
+    'ctrl_lidar': {'obstacle_node': 'obstacle_node', 'lidar_bridge': 'lidar_bridge',
                      'lidar_view': 'lidar_view', 'fake_cloud': 'fake_cloud', 'lidar_monitor': 'lidar_monitor'},
-    'foscar_camera': {'camera_bridge': 'camera_bridge', 'yolo_signal_node': 'yolo_signal_node',
+    'ctrl_camera': {'camera_bridge': 'camera_bridge', 'yolo_signal_node': 'yolo_signal_node',
                       'camera_view': 'camera_view', 'gps_logger': 'gps_logger'},
-    'foscar_planning': {'behavior_node': 'behavior_node', 'bev_node': 'bev_node', 'race_hud_node': 'race_hud_node'},
+    'ctrl_planning': {'behavior_node': 'behavior_node', 'bev_node': 'bev_node', 'race_hud_node': 'race_hud_node'},
 }
 INTERFACE_FIELDS = {
     'ControlCommand': [('header', 'std_msgs/Header'), ('accel', 'float64'), ('brake', 'float64'), ('steering_rad', 'float64'), ('state', 'string')],
@@ -92,7 +94,7 @@ def check_native_modules():
 def check_ros_imports():
     for module in ('rospy', 'rosgraph', 'roslib.packages', 'catkin_pkg', 'rospkg', 'std_msgs.msg',
                    'sensor_msgs.msg', 'geometry_msgs.msg', 'nav_msgs.msg',
-                   'visualization_msgs.msg', 'rosgraph_msgs.msg', 'tf2_py', 'tf2_ros', 'foscar_ros1'):
+                   'visualization_msgs.msg', 'rosgraph_msgs.msg', 'tf2_py', 'tf2_ros', 'ctrl_ros1'):
         importlib.import_module(module)
     return 'rospy, generated messages, catkin modules and native tf2 import under ' + sys.executable
 
@@ -118,8 +120,10 @@ def check_entrypoints():
     import roslib.packages
     count = 0
     for package, executables in ENTRYPOINTS.items():
-        for executable, module_name in executables.items():
-            module = importlib.import_module(package + '.' + module_name)
+        for executable, short_module in executables.items():
+            executable=executable_name(executable)
+            original_package=package.replace('ctrl_','foscar_',1)
+            module = importlib.import_module(module_name(original_package + '.' + short_module))
             require(callable(getattr(module, 'main', None)), package + '/' + executable + ' has no main')
             matches = roslib.packages.find_node(package, executable)
             require(matches, 'catkin executable not found: ' + package + '/' + executable)
@@ -131,7 +135,8 @@ def check_entrypoints():
                 check_script_interpreter(path)
             count += 1
     for executable in ('delay_wall', 'launch_info', 'record_bag'):
-        paths = roslib.packages.find_node('foscar_bringup', executable)
+        executable=executable_name(executable)
+        paths = roslib.packages.find_node('ctrl_bringup', executable)
         require(paths, 'bringup helper missing: ' + executable)
         for path in paths:
             check_script_interpreter(path)
@@ -144,7 +149,7 @@ def check_resources(package_lookup=None):
     if package_lookup is None:
         import rospkg
         package_lookup = rospkg.RosPack().get_path
-    with (Path(__file__).with_name('resource_hashes.json')).open(encoding='utf-8') as stream:
+    with (Path(__file__).with_name('ctrl_resource_hashes.json')).open(encoding='utf-8') as stream:
         expected = json.load(stream)['files']
     failures = []
     for relative, entry in expected.items():
@@ -157,18 +162,18 @@ def check_resources(package_lookup=None):
         except Exception as exc:
             failures.append(relative + ': ' + str(exc))
     require(not failures, '\n'.join(failures))
-    return '{} installed/source-share resources match the preserved original bytes'.format(len(expected))
+    return '{} installed/source-share resources match the reviewed CTRL deployment snapshot'.format(len(expected))
 
 
 def check_messages():
     import rospy
-    from foscar_interfaces import msg as interfaces
+    from ctrl_interfaces import msg as interfaces
     from sensor_msgs.msg import NavSatStatus, PointField
     from visualization_msgs.msg import Marker
     from geometry_msgs.msg import Pose
     from std_msgs.msg import Header
-    from foscar_ros1 import point_cloud2
-    from foscar_ros1.messages import Marker as HumbleMarker
+    from ctrl_ros1 import ctrl_point_cloud2 as point_cloud2
+    from ctrl_ros1.ctrl_messages import Marker as HumbleMarker
     for name, fields in INTERFACE_FIELDS.items():
         message = getattr(interfaces, name)
         require(list(zip(message.__slots__, message._slot_types)) == fields, 'stale or different generated interface: ' + name)

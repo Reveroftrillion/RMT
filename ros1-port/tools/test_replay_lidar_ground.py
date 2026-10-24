@@ -13,8 +13,8 @@ spec = importlib.util.spec_from_file_location('replay_lidar_ground',
                                              Path(__file__).with_name('replay_lidar_ground.py'))
 replay = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(replay)
-sys.path.insert(0, str(replay.PORT / 'src/foscar_lidar'))
-from foscar_lidar.ground import estimate_ground_plane
+sys.path.insert(0, str(replay.PORT / 'src/ctrl_lidar'))
+from ctrl_lidar.ctrl_ground import estimate_ground_plane
 
 
 @pytest.mark.parametrize('height', [0., .53])

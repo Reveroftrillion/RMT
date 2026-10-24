@@ -16,11 +16,13 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
+from ctrl_names import ctrl_text, legacy_text, current_relative
 
 HERE=Path(__file__).resolve().parent
 PORT=HERE.parent
 REPO=PORT.parent
-PACKAGES=('foscar_control','foscar_planning','foscar_lidar','foscar_camera')
+PACKAGES=('ctrl_control','ctrl_planning','ctrl_lidar','ctrl_camera')
 ATOL=RTOL=1e-12
 
 def compare(a,b,path='',differences=None,stats=None):
@@ -49,6 +51,9 @@ def copy_snapshot(side):
         ignore=shutil.ignore_patterns('__pycache__','.pytest_cache','*.pyc'))
     # Original test_highway_measurement imports these offline helpers.
     shutil.copytree(REPO/'2026_CTRL_competition/tools',destination/'tools',dirs_exist_ok=True)
+    if side=='port':
+        for helper in (destination/'tools').rglob('*.py'):
+            helper.write_text(ctrl_text(helper.read_text(encoding='utf-8')),encoding='utf-8')
     return destination
 
 def run(side, selected=None, suffix=''):
@@ -64,8 +69,12 @@ def run(side, selected=None, suffix=''):
     command=[sys.executable,'-X','utf8','-c',bootstrap,'-p','pytest_bridge','-p','no:cacheprovider','-q',
         '--rootdir='+str(tree),'--basetemp='+str(HERE/'.work'/('tmp-'+side))]
     if selected:
-        command.extend(str(tree/item.split('::',1)[0])+('::'+item.split('::',1)[1] if '::' in item else '') for item in selected)
-    else: command.extend(str(tree/'src'/p/'test') for p in PACKAGES)
+        for item in selected:
+            relative=item.split('::',1)[0]
+            relative=legacy_text(relative) if side=='original' else current_relative(relative)
+            command.append(str(tree/relative)+('::'+item.split('::',1)[1] if '::' in item else ''))
+    else:
+        command.extend(str(tree/'src'/(legacy_text(p) if side=='original' else p)/'test') for p in PACKAGES)
     log=HERE/'.work'/('pytest-'+side+suffix+'.log')
     with log.open('w',encoding='utf-8') as stream:
         result=subprocess.run(command,cwd=tree,env=env,stdout=stream,stderr=subprocess.STDOUT)

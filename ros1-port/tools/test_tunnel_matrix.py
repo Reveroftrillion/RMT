@@ -4,7 +4,7 @@ import math
 import pytest
 
 import probe_tunnel_matrix as probe
-from foscar_planning.state import Target
+from ctrl_planning.ctrl_state import Target
 
 
 def test_sat_distinguishes_gap_and_touching_rotated_body():

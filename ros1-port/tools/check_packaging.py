@@ -10,11 +10,12 @@ import xml.etree.ElementTree as ET
 # from sys.path; this tool has one explicit sibling dependency.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from generate_packaging import ORIGINAL, WS, read_launch
+from ctrl_names import launch_name, package_name, legacy_text
 
 
-LAUNCHES = [('foscar_bringup', 'competition'), ('foscar_bringup', 'low_speed'),
-            ('foscar_lidar', 'obstacle'), ('foscar_lidar', 'drive'),
-            ('foscar_camera', 'yolo_signal'), ('foscar_camera', 'gps_record')]
+LAUNCHES = [('ctrl_bringup', 'competition'), ('ctrl_bringup', 'low_speed'),
+            ('ctrl_lidar', 'obstacle'), ('ctrl_lidar', 'drive'),
+            ('ctrl_camera', 'yolo_signal'), ('ctrl_camera', 'gps_record')]
 
 
 def normalized(item):
@@ -41,14 +42,14 @@ def check_launches():
     node_count = argument_count = parameter_count = 0
     for package, stem in LAUNCHES:
         source = list(nested(read_launch(package, stem + '.launch.py')))
-        destination = ET.parse(WS / 'src' / package / 'launch' / (stem + '.launch')).getroot()
+        destination = ET.parse(WS / 'src' / package / 'launch' / launch_name(stem + '.launch')).getroot()
         expected_args = {action.args[0]: normalized(action.kwargs['default_value'])
                          for action in source if type(action).__name__ == 'DeclareLaunchArgument'}
         actual_args = {element.get('name'): element.get('default') for element in destination.findall('arg')}
         assert expected_args == actual_args, (package, stem, 'argument defaults', expected_args, actual_args)
         argument_count += len(expected_args)
         elements = list(destination.iter('node'))
-        for deferred in (WS / 'src' / package / 'launch').glob(stem + '_delayed.launch'):
+        for deferred in (WS / 'src' / package / 'launch').glob(launch_name(stem + '_delayed.launch')):
             elements += list(ET.parse(deferred).getroot().iter('node'))
         required = {action.args[0].kwargs.get('target_action') for action in source
                     if type(action).__name__ == 'RegisterEventHandler'
@@ -101,7 +102,7 @@ def check_launches():
                 assert args == ['$(arg', 'lidar_x)', '$(arg', 'lidar_y)', '$(arg', 'lidar_z)', '0', '0', '0', '1', 'base_link', 'lidar']
             node_count += 1
         for timer in [action for action in source if type(action).__name__ == 'TimerAction']:
-            helper = next(element for element in elements if element.get('type') == 'delay_wall')
+            helper = next(element for element in elements if element.get('type') == 'ctrl_delay_wall')
             assert float(helper.get('args').split()[0]) == timer.kwargs['period'] == 5.0
     return argument_count, node_count, parameter_count
 
@@ -118,7 +119,7 @@ def check_topics():
         cmd = next(keyword.value for keyword in assignment.value.keywords if keyword.arg == 'cmd')
         expected[names[0]] = [item.value for item in cmd.elts if isinstance(item, ast.Constant)
                               and isinstance(item.value, str) and item.value.startswith('/')]
-    helper = ast.parse((WS / 'src/foscar_bringup/scripts/record_bag').read_text(encoding='utf-8'))
+    helper = ast.parse((WS / 'src/ctrl_bringup/scripts/ctrl_record_bag').read_text(encoding='utf-8'))
     actual = {target.id: ast.literal_eval(assignment.value) for assignment in helper.body if isinstance(assignment, ast.Assign)
               for target in assignment.targets if isinstance(target, ast.Name) and target.id in ('TOPICS', 'POINT_TOPICS')}
     assert expected['bag'] == actual['TOPICS']
@@ -134,7 +135,7 @@ def check_resources():
             if not source.is_dir():
                 continue
             expected_files = {file.relative_to(source) for file in source.rglob('*') if file.is_file()}
-            destination = WS / 'src' / package.name / directory
+            destination = WS / 'src' / package_name(package.name) / directory
             assert expected_files == {file.relative_to(destination) for file in destination.rglob('*') if file.is_file()}, (package, directory, 'resource inventory')
             for relative in expected_files:
                 assert hashlib.sha256((source / relative).read_bytes()).digest() == hashlib.sha256((destination / relative).read_bytes()).digest(), (package.name, directory, relative)

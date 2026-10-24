@@ -21,8 +21,8 @@ import time
 import xmlrpc.client
 
 import rospy
-from foscar_control.core import parse_status, parse_gps, parse_imu
-from foscar_interfaces.msg import VehicleStatus, ControlCommand
+from ctrl_control.ctrl_core import parse_status, parse_gps, parse_imu
+from ctrl_interfaces.msg import VehicleStatus, ControlCommand
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu, NavSatFix
 from std_msgs.msg import Float64, String

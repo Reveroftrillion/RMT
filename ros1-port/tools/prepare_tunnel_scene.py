@@ -15,9 +15,9 @@ import sys
 
 sys.dont_write_bytecode = True
 PORT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PORT / 'src/foscar_control'))
+sys.path.insert(0, str(PORT / 'src/ctrl_control'))
 import numpy as np
-from foscar_control.core import Route
+from ctrl_control.ctrl_core import Route
 
 
 def ids(value):
@@ -99,8 +99,8 @@ def main(argv=None):
         parser.error('Require tunnel station 1868..1970 and finite offset within 6m')
     raw = args.scene.read_bytes()
     scene = json.loads(raw)
-    route_path = PORT / 'src/foscar_bringup/routes/global_path.txt'
-    map_path = PORT / 'src/foscar_bringup/maps/link_set.json'
+    route_path = PORT / 'src/ctrl_bringup/routes/global_path.txt'
+    map_path = PORT / 'src/ctrl_bringup/maps/link_set.json'
     route = Route(np.loadtxt(route_path))
     heading = route.heading_at(args.station)
     xy = np.asarray(route.at(args.station)) + args.offset * np.array([-math.sin(heading), math.cos(heading)])

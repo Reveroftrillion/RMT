@@ -19,15 +19,15 @@ def prepare(output):
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     sources = {
-        'camera': ROOT/'src/foscar_camera/launch/yolo_signal.launch',
-        'delayed': ROOT/'src/foscar_bringup/launch/competition_delayed.launch',
-        'competition': ROOT/'src/foscar_bringup/launch/competition.launch',
+        'camera': ROOT/'src/ctrl_camera/launch/ctrl_yolo_signal.launch',
+        'delayed': ROOT/'src/ctrl_bringup/launch/ctrl_competition_delayed.launch',
+        'competition': ROOT/'src/ctrl_bringup/launch/ctrl_competition.launch',
         'local': ROOT/'docker/local.launch',
     }
     replacements = {
-        'delayed': ('$(find foscar_camera)/launch/yolo_signal.launch', str(output/'camera.launch')),
-        'competition': ('foscar_bringup competition_delayed.launch', str(output/'delayed.launch')),
-        'local': ('$(find foscar_bringup)/launch/competition.launch', str(output/'competition.launch')),
+        'delayed': ('$(find ctrl_camera)/launch/ctrl_yolo_signal.launch', str(output/'camera.launch')),
+        'competition': ('ctrl_bringup ctrl_competition_delayed.launch', str(output/'delayed.launch')),
+        'local': ('$(find ctrl_bringup)/launch/ctrl_competition.launch', str(output/'ctrl_competition.launch')),
     }
     for name, source in sources.items():
         content = source.read_text()

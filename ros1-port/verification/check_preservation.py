@@ -6,6 +6,9 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
+from ctrl_names import current_path
 
 HERE=Path(__file__).resolve().parent
 PORT=HERE.parent
@@ -39,7 +42,7 @@ def main():
     for path in sorted((SOURCE/'src').glob('*/*/**/*.py')):
         rel=path.relative_to(SOURCE/'src')
         if len(rel.parts)<3 or rel.parts[0]!=rel.parts[1]: continue
-        target=PORT/'src'/rel
+        target=current_path(PORT/'src'/rel)
         original=path.read_text(encoding='utf-8')
         expected=boundary.converted(rel,original)
         if not target.exists() or target.read_text(encoding='utf-8')!=expected: errors.append(str(rel))
@@ -50,7 +53,7 @@ def main():
     test_count=0
     for path in tests:
         if not path.is_file(): continue
-        rel=path.relative_to(SOURCE/'src');target=PORT/'src'/rel;test_count+=1
+        rel=path.relative_to(SOURCE/'src');target=current_path(PORT/'src'/rel);test_count+=1
         if not target.exists() or digest(path)!=digest(target): errors.append(str(rel))
     report=dict(reference_files=len(actual),unchanged_python=len(pure),boundary_python=len(adapted),
         unchanged_test_files=test_count,adapted_files=adapted,errors=errors)

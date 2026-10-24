@@ -20,7 +20,8 @@ PORT = Path(__file__).resolve().parents[1]
 
 
 def load(base, name):
-    spec = importlib.util.spec_from_file_location(name, base / 'src/foscar_camera/foscar_camera/yolo_onnx.py')
+    relative=('src/ctrl_camera/ctrl_camera/ctrl_yolo_onnx.py' if base==PORT else 'src/foscar_camera/foscar_camera/yolo_onnx.py')
+    spec = importlib.util.spec_from_file_location(name, base / relative)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -55,7 +56,7 @@ def main():
     results = []
     for label, base in [('original', PORT.parent / '2026_CTRL_competition'), ('port', PORT)]:
         module = load(base, label + '_gpu_detector')
-        model = base / 'src/foscar_camera/models/best.onnx'
+        model = base / ('src/ctrl_camera/models/best.onnx' if base==PORT else 'src/foscar_camera/models/best.onnx')
         detector = module.Detector(model, confidence=.4, threads=4)
         if detector.provider != 'CUDAExecutionProvider':
             raise RuntimeError(label + ' silently fell back to ' + detector.provider)
@@ -84,7 +85,7 @@ def main():
     options.enable_profiling = True
     options.profile_file_prefix = str(args.output.parent / 'cuda-profile')
     options.intra_op_num_threads = 4
-    session = ort.InferenceSession(str(PORT / 'src/foscar_camera/models/best.onnx'),
+    session = ort.InferenceSession(str(PORT / 'src/ctrl_camera/models/best.onnx'),
                                    sess_options=options, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
     if session.get_providers()[0] != 'CUDAExecutionProvider':
         raise RuntimeError('Profile session did not initialize CUDA')

@@ -7,12 +7,16 @@ import ast
 import sys
 import types
 import xml.etree.ElementTree as ET
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from ctrl_names import ctrl_text, current_path, package_name, REVERSE_PACKAGES, FILES
 
 WS = Path(__file__).resolve().parents[1]
 ORIGINAL = WS.parent / '2026_CTRL_competition' / 'src'
 
 
 def write_file(path, text):
+    path=current_path(path)
+    text=ctrl_text(text)
     # pathlib.Path.write_text(newline=...) and ElementTree.indent were added
     # after Noetic's Python 3.8. Keep generation tools usable there as well.
     with path.open('w', encoding='utf-8', newline='\n') as stream:
@@ -57,9 +61,11 @@ def read_launch(package, filename):
             module.get_package_share_directory = lambda pkg: '$(find ' + pkg + ')'
             module.PackageNotFoundError = LookupError
             sys.modules[name] = module
+        package=REVERSE_PACKAGES.get(package,package)
+        filename={v:k for k,v in FILES.items()}.get(filename,filename)
         filename = ORIGINAL / package / 'launch' / filename
         scope = {'__file__': str(filename)}
-        text = filename.read_text(encoding='utf-8').replace('    logs.mkdir(parents=True, exist_ok=True)\n', '')
+        text = ctrl_text(filename.read_text(encoding='utf-8')).replace('    logs.mkdir(parents=True, exist_ok=True)\n', '')
         exec(compile(text, str(filename), 'exec'), scope)
         # code_version is evaluated at launch time through launch_info, not frozen here.
         if 'code_version' in scope:
@@ -114,9 +120,9 @@ def parameter(parent, name, item):
         text = "$(eval {'auto':'auto','spawn':'spawn','global':'global'}[arg('route')])"
     attributes = {'name': name.replace('.', '/')}
     if text == '__CODE_VERSION__':
-        attributes['command'] = 'python3 "$(find foscar_bringup)/scripts/launch_info" code-version'
+        attributes['command'] = 'python3 "$(find ctrl_bringup)/scripts/ctrl_launch_info" code-version'
     elif name == 'detections_log':
-        attributes['command'] = 'python3 "$(find foscar_bringup)/scripts/launch_info" detections-log'
+        attributes['command'] = 'python3 "$(find ctrl_bringup)/scripts/ctrl_launch_info" detections-log'
     else:
         attributes['value'] = text
         attributes['type'] = {bool: 'bool', int: 'int', float: 'double'}.get(kind, 'str')
@@ -184,7 +190,7 @@ def render(parent, action, required, package, stem, arguments):
             render(deferred, child, required, package, stem, arguments)
         delayed_name = stem + '_delayed.launch'
         write_xml(WS / 'src' / package / 'launch' / delayed_name, deferred)
-        attrs = {'pkg': 'foscar_bringup', 'type': 'delay_wall', 'name': stem + '_camera_delay', 'output': 'screen',
+        attrs = {'pkg': 'ctrl_bringup', 'type': 'delay_wall', 'name': stem + '_camera_delay', 'output': 'screen',
                  'args': str(action.kwargs['period']) + ' ' + package + ' ' + delayed_name + ' ' +
                  ' '.join('"' + argument.args[0] + ':=' + value(LaunchConfiguration(argument.args[0])) + '"' for argument in arguments)}
         # The delayed competition group has one camera condition, so avoid
@@ -193,7 +199,7 @@ def render(parent, action, required, package, stem, arguments):
         ET.SubElement(parent, 'node', attrs)
     elif kind == 'ExecuteProcess':
         points = action.kwargs['condition'].args[0].args[0] == 'bag_points'
-        node = ET.SubElement(parent, 'node', {'pkg': 'foscar_bringup', 'type': 'record_bag',
+        node = ET.SubElement(parent, 'node', {'pkg': 'ctrl_bringup', 'type': 'record_bag',
             'name': 'competition_bag_points' if points else 'competition_bag', 'output': 'log',
             'args': '--bag-dir "$(arg bag_dir)"' + (' --points' if points else '')})
         add_condition(node, action.kwargs['condition'])
@@ -231,7 +237,7 @@ def convert_launch(package, stem):
     root = ET.Element('launch')
     if stem == 'competition':
         ET.SubElement(root, 'param', {'name': '/ros1_port/competition/bag_name',
-            'command': 'python3 "$(find foscar_bringup)/scripts/launch_info" bag-name'})
+            'command': 'python3 "$(find ctrl_bringup)/scripts/ctrl_launch_info" bag-name'})
     for action in actions:
         render(root, action, required, package, stem, arguments)
     write_xml(WS / 'src' / package / 'launch' / (stem + '.launch'), root)
@@ -241,33 +247,33 @@ def metadata():
     for original in ORIGINAL.iterdir():
         if not (original / 'package.xml').is_file():
             continue
-        name = original.name
+        name = package_name(original.name)
         destination = WS / 'src' / name
         source_xml = ET.parse(original / 'package.xml').getroot()
         package = ET.Element('package', {'format': '2'})
         for tag in ['name', 'version', 'description', 'maintainer', 'license']:
             package.append(source_xml.find(tag))
         ET.SubElement(package, 'buildtool_depend').text = 'catkin'
-        if name == 'foscar_interfaces':
+        if name == 'ctrl_interfaces':
             ET.SubElement(package, 'build_depend').text = 'message_generation'
             ET.SubElement(package, 'exec_depend').text = 'message_runtime'
             ET.SubElement(package, 'depend').text = 'std_msgs'
             write_file(destination / 'CMakeLists.txt', '''cmake_minimum_required(VERSION 3.0.2)
-project(foscar_interfaces)
+project(ctrl_interfaces)
 find_package(catkin REQUIRED COMPONENTS message_generation std_msgs)
 add_message_files(FILES VehicleStatus.msg ControlCommand.msg DrivingTarget.msg Event.msg)
 generate_messages(DEPENDENCIES std_msgs)
 catkin_package(CATKIN_DEPENDS message_runtime std_msgs)
 ''')
         else:
-            depend = {'rospy', 'foscar_ros1'}
+            depend = {'rospy', 'ctrl_ros1'}
             obsolete = {'rclpy', 'ament_index_python', 'launch_ros', 'sensor_msgs_py', 'rviz2'}
             depend.update(element.text for element in source_xml.findall('exec_depend') if element.text not in obsolete)
-            if name == 'foscar_bringup':
-                depend.update({'foscar_camera', 'roslaunch', 'rosbag', 'rviz', 'tf2_ros'})
-            if name == 'foscar_lidar':
+            if name == 'ctrl_bringup':
+                depend.update({'ctrl_camera', 'roslaunch', 'rosbag', 'rviz', 'tf2_ros'})
+            if name == 'ctrl_lidar':
                 depend.update({'python3-matplotlib'})
-            if name == 'foscar_planning':
+            if name == 'ctrl_planning':
                 depend.update({'geometry_msgs'})
             for item in sorted(depend):
                 ET.SubElement(package, 'exec_depend').text = item
@@ -286,7 +292,7 @@ catkin_package(CATKIN_DEPENDS message_runtime std_msgs)
                     folder = destination / 'scripts'
                     folder.mkdir(exist_ok=True)
                     write_file(folder / executable, '#!/usr/bin/env python3\nfrom ' + module + ' import ' + function + '\n\nif __name__ == "__main__":\n    ' + function + '()\n')
-            if name == 'foscar_bringup':
+            if name == 'ctrl_bringup':
                 scripts += ['delay_wall', 'launch_info', 'record_bag']
             cmake = ['cmake_minimum_required(VERSION 3.0.2)', 'project(' + name + ')',
                      'find_package(catkin REQUIRED)', 'catkin_python_setup()', 'catkin_package()']
@@ -312,10 +318,10 @@ catkin_package(CATKIN_DEPENDS message_runtime std_msgs)
                     cmake.append('install(DIRECTORY ' + folder + '/ DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/' + folder + ')')
             if (destination / 'launch').is_dir():
                 cmake.append('install(DIRECTORY launch/ DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch FILES_MATCHING PATTERN "*.launch")')
-            if name == 'foscar_bringup':
+            if name == 'ctrl_bringup':
                 # XML param-command paths must also work in a catkin install
                 # space, where rospack resolves share rather than source.
-                cmake.append('install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/python_scripts/launch_info" DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts)')
+                cmake.append('install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/python_scripts/ctrl_launch_info" DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts)')
             for requirements in sorted(destination.glob('requirements*.txt')):
                 cmake.append('install(FILES ' + requirements.name + ' DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})')
             write_file(destination / 'CMakeLists.txt', '\n'.join(cmake) + '\n')
@@ -351,7 +357,7 @@ def rviz_resources():
 if __name__ == '__main__':
     metadata()
     rviz_resources()
-    for pkg, launch in [('foscar_bringup', 'competition'), ('foscar_bringup', 'low_speed'),
-                        ('foscar_lidar', 'obstacle'), ('foscar_lidar', 'drive'),
-                        ('foscar_camera', 'yolo_signal'), ('foscar_camera', 'gps_record')]:
+    for pkg, launch in [('ctrl_bringup', 'competition'), ('ctrl_bringup', 'low_speed'),
+                        ('ctrl_lidar', 'obstacle'), ('ctrl_lidar', 'drive'),
+                        ('ctrl_camera', 'yolo_signal'), ('ctrl_camera', 'gps_record')]:
         convert_launch(pkg, launch)

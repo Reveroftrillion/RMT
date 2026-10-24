@@ -16,7 +16,7 @@ python3 ros1-port/tools/preflight.py > preflight.log 2>&1
 preflight=$?
 python3 ros1-port/tools/check_model_equivalence.py > model.log 2>&1
 model=$?
-python3 -m unittest discover -s /workspace/ros1-port/src/foscar_ros1/test -v > adapter.log 2>&1
+python3 -m unittest discover -s /workspace/ros1-port/src/ctrl_ros1/test -v > adapter.log 2>&1
 adapter=$?
 python3 -m unittest discover -s /workspace/ros1-port/tools -p test_packaging.py -v > packaging.log 2>&1
 packaging=$?

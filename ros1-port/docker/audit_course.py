@@ -25,14 +25,14 @@ import numpy as np
 import rosgraph
 import rospy
 import roslib.message
-from foscar_control.core import Route, parse_status
-from foscar_control.mission_config import read_checkpoints
-from foscar_planning.lane_prediction import LaneMap
+from ctrl_control.ctrl_core import Route, parse_status
+from ctrl_control.ctrl_mission_config import read_checkpoints
+from ctrl_planning.ctrl_lane_prediction import LaneMap
 from course_audit_safety import (DepartureGuard, collision_slots, decode_collision,
                                  input_loss_reason, manual_park_evidence, missing_required_nodes)
 
 ROOT = Path(__file__).resolve().parents[1]
-TOPICS = list(dict.fromkeys(runpy.run_path(str(ROOT/'src/foscar_bringup/scripts/record_bag'))['TOPICS'] + [
+TOPICS = list(dict.fromkeys(runpy.run_path(str(ROOT/'src/ctrl_bringup/scripts/ctrl_record_bag'))['TOPICS'] + [
     '/sensors/gps', '/sensors/imu', '/sensors/lidar/points', '/sensors/camera/traffic/compressed',
     '/perception/traffic_light/debug/compressed', '/control/path', '/tf', '/tf_static', '/rosout_agg']))
 
@@ -90,9 +90,9 @@ def main():
     collision_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     collision_socket.bind(('0.0.0.0', 9092))
     collision_socket.setblocking(False)
-    route = Route(np.loadtxt(ROOT/'src/foscar_bringup/routes/global_path.txt'))
-    lane_map = LaneMap.from_file(ROOT/'src/foscar_bringup/maps/link_set.json')
-    checkpoints = read_checkpoints(ROOT/'src/foscar_bringup/routes/checkpoints.txt')
+    route = Route(np.loadtxt(ROOT/'src/ctrl_bringup/routes/global_path.txt'))
+    lane_map = LaneMap.from_file(ROOT/'src/ctrl_bringup/maps/link_set.json')
+    checkpoints = read_checkpoints(ROOT/'src/ctrl_bringup/routes/checkpoints.txt')
     checkpoints[0] = dict(xy=np.array([-131.68979755061446, -428.3310229377821]), radius=3.)
     cp = {str(k): dict(min_distance_m=None, closest_s=None, closest_time=None, radius_m=v['radius'],
                       route_s=route.project(*v['xy'])[0]) for k, v in checkpoints.items()}

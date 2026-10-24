@@ -20,21 +20,21 @@ sys.dont_write_bytecode = True
 PORT = Path(__file__).resolve().parents[1]
 # Resolve package:// geometry from this checkout, independently of a host ROS overlay.
 os.environ['ROS_PACKAGE_PATH'] = str(PORT / 'src')
-for package in ('foscar_control', 'foscar_planning', 'foscar_ros1'):
+for package in ('ctrl_control', 'ctrl_planning', 'ctrl_ros1'):
     sys.path.insert(0, str(PORT / 'src' / package))
 
 import numpy as np
 import yaml
 
-from foscar_control.core import Route
-from foscar_control.mission_config import load_mission_config
-from foscar_planning.lane_prediction import LaneMap
-from foscar_planning.mission import MissionSupervisor
-from foscar_planning.state import Behavior, Context, EventInfo
-from foscar_planning.states.avoid import Avoid
-from foscar_planning.states.cruise import Cruise
-from foscar_planning.states.tunnel import Tunnel
-from foscar_planning.states.yield_ import Yield
+from ctrl_control.ctrl_core import Route
+from ctrl_control.ctrl_mission_config import load_mission_config
+from ctrl_planning.ctrl_lane_prediction import LaneMap
+from ctrl_planning.ctrl_mission import MissionSupervisor
+from ctrl_planning.ctrl_state import Behavior, Context, EventInfo
+from ctrl_planning.states.ctrl_avoid import Avoid
+from ctrl_planning.states.ctrl_cruise import Cruise
+from ctrl_planning.states.ctrl_tunnel import Tunnel
+from ctrl_planning.states.ctrl_yield import Yield
 
 
 @dataclass(frozen=True)
@@ -118,11 +118,11 @@ def scenarios():
 
 class Runtime:
     def __init__(self):
-        self.route = Route(np.loadtxt(PORT / 'src/foscar_bringup/routes/global_path.txt'))
-        self.road = LaneMap(json.loads((PORT / 'src/foscar_bringup/maps/link_set.json').read_text()))
-        self.config = yaml.safe_load((PORT / 'src/foscar_planning/config/behavior.yaml').read_text())[
+        self.route = Route(np.loadtxt(PORT / 'src/ctrl_bringup/routes/global_path.txt'))
+        self.road = LaneMap(json.loads((PORT / 'src/ctrl_bringup/maps/link_set.json').read_text()))
+        self.config = yaml.safe_load((PORT / 'src/ctrl_planning/config/behavior.yaml').read_text())[
             'behavior_node']['ros__parameters']
-        self.missions = load_mission_config(PORT / 'src/foscar_planning/config/missions.yaml')
+        self.missions = load_mission_config(PORT / 'src/ctrl_planning/config/missions.yaml')
 
     def behavior(self):
         states = []
@@ -242,13 +242,13 @@ def clean(value):
 
 
 def source_manifest():
-    paths = sorted((PORT / 'src/foscar_planning/foscar_planning').rglob('*.py'))
-    paths += sorted((PORT / 'src/foscar_control/foscar_control').rglob('*.py'))
+    paths = sorted((PORT / 'src/ctrl_planning/ctrl_planning').rglob('*.py'))
+    paths += sorted((PORT / 'src/ctrl_control/ctrl_control').rglob('*.py'))
     paths += [PORT / name for name in (
-        'tools/probe_tunnel_contingencies.py', 'src/foscar_planning/config/behavior.yaml',
-        'src/foscar_planning/config/missions.yaml', 'src/foscar_bringup/routes/global_path.txt',
-        'src/foscar_bringup/maps/link_set.json', 'src/foscar_bringup/routes/checkpoints.txt',
-        'src/foscar_ros1/foscar_ros1/packages.py')]
+        'tools/probe_tunnel_contingencies.py', 'src/ctrl_planning/config/behavior.yaml',
+        'src/ctrl_planning/config/missions.yaml', 'src/ctrl_bringup/routes/global_path.txt',
+        'src/ctrl_bringup/maps/link_set.json', 'src/ctrl_bringup/routes/checkpoints.txt',
+        'src/ctrl_ros1/ctrl_ros1/ctrl_packages.py')]
     return {str(path.relative_to(PORT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
 
 

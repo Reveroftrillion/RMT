@@ -12,7 +12,7 @@ python3 tools/check_noetic_environment.py --json > "$output/devel-environment.js
 environment=$?
 python3 docker/check_native_serialization.py > "$output/native-serialization.json" 2>&1
 native=$?
-python3 -m unittest discover -s src/foscar_ros1/test -v > "$output/adapter.log" 2>&1
+python3 -m unittest discover -s src/ctrl_ros1/test -v > "$output/adapter.log" 2>&1
 adapter=$?
 python3 -m unittest discover -s tools -p test_packaging.py -v > "$output/packaging.log" 2>&1
 packaging=$?
@@ -24,7 +24,7 @@ set +e
 bash -c 'source /opt/ros/noetic/setup.bash; source install/setup.bash; python3 tools/check_noetic_environment.py --json' \
   > "$output/install-environment.json" 2>&1
 install_environment=$?
-bash -c 'source /opt/ros/noetic/setup.bash; source install/setup.bash; roslaunch --nodes foscar_bringup competition.launch drive:=false' \
+bash -c 'source /opt/ros/noetic/setup.bash; source install/setup.bash; roslaunch --nodes ctrl_bringup ctrl_competition.launch drive:=false' \
   > "$output/install-nodes.txt" 2>&1
 install_nodes=$?
 set -e

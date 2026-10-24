@@ -7,6 +7,8 @@ from pathlib import Path
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from ctrl_names import legacy_text
 
 
 WS = Path(__file__).resolve().parents[1]
@@ -34,20 +36,21 @@ def main():
             failures.append(name + ': missing CMakeLists.txt')
     # Check the existing calibrations rather than weakening their runtime guard.
     for base in (SOURCE, WS):
-        calibration = json.loads((base / 'src/foscar_camera/config/yolo_stoplines.json').read_text(encoding='utf-8'))
-        route = base / 'src/foscar_bringup/routes/global_path.txt'
+        def resource_path(relative):return base/(legacy_text(relative) if base==SOURCE else relative)
+        calibration = json.loads(resource_path('src/ctrl_camera/config/yolo_stoplines.json').read_text(encoding='utf-8'))
+        route = resource_path('src/ctrl_bringup/routes/global_path.txt')
         actual = hashlib.sha256(route.read_bytes()).hexdigest()
         if actual != calibration['route_sha256']:
             failures.append(str(base) + ': traffic route calibration hash mismatch')
-        model = base / 'src/foscar_camera/models/best.onnx'
+        model = resource_path('src/ctrl_camera/models/best.onnx')
         actual_model = hashlib.sha256(model.read_bytes()).hexdigest()
         if actual_model != '04ab171d8a46b5576891a23034000fa34cc63bf63336c8edb67b9a3fee551b8b':
             failures.append(str(base) + ': original model README hash mismatch')
-        for resource in ('foscar_planning/config/highway_kappa.npz',
-                         'foscar_bringup/maps/link_set.seams.npz',
-                         'foscar_bringup/routes/spawn_path.txt',
-                         'foscar_bringup/routes/checkpoints.txt'):
-            if not (base / 'src' / resource).is_file():
+        for resource in ('ctrl_planning/config/highway_kappa.npz',
+                         'ctrl_bringup/maps/link_set.seams.npz',
+                         'ctrl_bringup/routes/spawn_path.txt',
+                         'ctrl_bringup/routes/checkpoints.txt'):
+            if not resource_path('src/'+resource).is_file():
                 failures.append(str(base) + ': missing resource ' + resource)
     for script in ('port_boundary.py', 'check_packaging.py'):
         result = subprocess.run([sys.executable, str(WS / 'tools' / script)], cwd=str(REPOSITORY),

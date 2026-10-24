@@ -31,21 +31,21 @@ def main():
     ap.add_argument('--baseline-head',action='store_true')
     ap.add_argument('--stop-at',type=float,default=math.inf)
     args=ap.parse_args();args.output.mkdir(parents=True,exist_ok=False)
-    from foscar_control.core import Route
-    from foscar_planning.state import Context
-    from foscar_planning.signal_stop import SignalStopPolicy
-    from foscar_planning.lane_prediction import LaneMap
+    from ctrl_control.ctrl_core import Route
+    from ctrl_planning.ctrl_state import Context
+    from ctrl_planning.ctrl_signal_stop import SignalStopPolicy
+    from ctrl_planning.ctrl_lane_prediction import LaneMap
     if args.baseline_head:
-        key='foscar_planning.states.avoid'
-        source=subprocess.check_output(['git','show','HEAD:ros1-port/src/foscar_planning/foscar_planning/states/avoid.py'],cwd=PORT.parent)
+        key='ctrl_planning.states.ctrl_avoid'
+        source=subprocess.check_output(['git','show','HEAD:ros1-port/src/ctrl_planning/ctrl_planning/states/ctrl_avoid.py'],cwd=PORT.parent)
         module=importlib.util.module_from_spec(importlib.util.spec_from_loader(key,loader=None));sys.modules[key]=module
-        exec(compile(source,'<HEAD:avoid.py>','exec'),module.__dict__)
-    from foscar_planning.states.avoid import Avoid
-    route=Route(np.loadtxt(PORT/'src/foscar_bringup/routes/global_path.txt'))
-    road=LaneMap(json.loads((PORT/'src/foscar_bringup/maps/link_set.json').read_text()))
-    config=yaml.safe_load((PORT/'src/foscar_planning/config/behavior.yaml').read_text())['behavior_node']['ros__parameters']
+        exec(compile(source,'<HEAD:ctrl_avoid.py>','exec'),module.__dict__)
+    from ctrl_planning.states.ctrl_avoid import Avoid
+    route=Route(np.loadtxt(PORT/'src/ctrl_bringup/routes/global_path.txt'))
+    road=LaneMap(json.loads((PORT/'src/ctrl_bringup/maps/link_set.json').read_text()))
+    config=yaml.safe_load((PORT/'src/ctrl_planning/config/behavior.yaml').read_text())['behavior_node']['ros__parameters']
     avoid=Avoid(**{k[6:]:v for k,v in config.items() if k.startswith('avoid.')})
-    policy=SignalStopPolicy(json.loads((PORT/'src/foscar_camera/config/yolo_stoplines.json').read_text())['lines'])
+    policy=SignalStopPolicy(json.loads((PORT/'src/ctrl_camera/config/yolo_stoplines.json').read_text())['lines'])
     pose=None;s=None;fp=None;mission='';rows=[];poses=[];began=time.monotonic()
     selected=['/localization/odometry','/localization/s','/perception/footprints','/perception/traffic_signal','/behavior/target','/behavior/mission']
     with rosbag.Bag(str(args.bag)) as bag:

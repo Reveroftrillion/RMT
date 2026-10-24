@@ -13,4 +13,4 @@ else
   exit 1
 fi
 if [ -d "$ws/.camera-deps" ]; then export PYTHONPATH="$ws/.camera-deps:${PYTHONPATH:-}"; fi
-exec roslaunch foscar_bringup competition.launch "$@"
+exec roslaunch ctrl_bringup ctrl_competition.launch "$@"

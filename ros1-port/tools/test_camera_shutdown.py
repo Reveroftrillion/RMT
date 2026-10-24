@@ -2,8 +2,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from foscar_camera import camera_bridge, yolo_signal_node
-from foscar_ros1.executors import ExternalShutdownException
+from ctrl_camera import ctrl_camera_bridge as camera_bridge, ctrl_yolo_signal_node as yolo_signal_node
+from ctrl_ros1.ctrl_executors import ExternalShutdownException
 
 
 class CameraShutdownTests(unittest.TestCase):

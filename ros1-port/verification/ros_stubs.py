@@ -164,7 +164,8 @@ def install(tree):
         Imu=message('Imu',dict(header=Header,orientation=Quaternion,angular_velocity=Point,linear_acceleration=Point)),
         NavSatFix=message('NavSatFix',dict(header=Header,latitude=0.,longitude=0.,altitude=0.)))
     custom = {}
-    for path in (ROOT/'src/foscar_interfaces/msg').glob('*.msg'):
+    interface_dir = ROOT / ('src/ctrl_interfaces/msg' if (ROOT/'src/ctrl_interfaces/msg').is_dir() else 'src/foscar_interfaces/msg')
+    for path in interface_dir.glob('*.msg'):
         fields = {}
         for line in path.read_text(encoding='utf-8').splitlines():
             tokens = line.split('#',1)[0].split()
@@ -173,6 +174,7 @@ def install(tree):
             fields[name] = list if kind.endswith('[]') else (Header if kind=='std_msgs/Header' else
                 ('' if kind=='string' else False if kind=='bool' else 0. if kind.startswith('float') else 0))
         custom[path.stem] = message(path.stem,fields)
+    module('ctrl_interfaces.msg', **custom)
     module('foscar_interfaces.msg', **custom)
     class QoS:
         def __init__(self, depth=10, **kw): self.depth=depth; self.__dict__.update(kw)
@@ -180,18 +182,18 @@ def install(tree):
         def __init__(self,*a,**kw): pass
         def add_node(self,*a): pass
         def shutdown(self,*a,**kw): pass
-    for prefix in ('rclpy','foscar_ros1'):
+    for prefix in ('rclpy','ctrl_ros1'):
         module(prefix,init=init,shutdown=lambda **kw:None,ok=lambda:True,spin=lambda *a,**kw:None)
-        module(prefix+'.node',Node=Node)
-        module(prefix+'.parameter',Parameter=Parameter)
-        module(prefix+'.qos',QoSProfile=QoS,qos_profile_sensor_data=QoS(depth=5),
+        module(prefix+('.ctrl_node' if prefix=='ctrl_ros1' else '.node'),Node=Node)
+        module(prefix+('.ctrl_parameter' if prefix=='ctrl_ros1' else '.parameter'),Parameter=Parameter)
+        module(prefix+('.ctrl_qos' if prefix=='ctrl_ros1' else '.qos'),QoSProfile=QoS,qos_profile_sensor_data=QoS(depth=5),
             DurabilityPolicy=types.SimpleNamespace(TRANSIENT_LOCAL=1,VOLATILE=0))
-        module(prefix+'.executors',ExternalShutdownException=type('ExternalShutdownException',(Exception,),{}),
+        module(prefix+('.ctrl_executors' if prefix=='ctrl_ros1' else '.executors'),ExternalShutdownException=type('ExternalShutdownException',(Exception,),{}),
             MultiThreadedExecutor=Executor,SingleThreadedExecutor=Executor)
-        module(prefix+'.callback_groups',MutuallyExclusiveCallbackGroup=type('Group',(),{}))
-        module(prefix+'.time',Time=Time)
-        module(prefix+'.duration',Duration=Time)
-        module(prefix+'.packages',get_package_share_directory=lambda name:str(ROOT/'src'/name),
+        module(prefix+('.ctrl_callback_groups' if prefix=='ctrl_ros1' else '.callback_groups'),MutuallyExclusiveCallbackGroup=type('Group',(),{}))
+        module(prefix+('.ctrl_time' if prefix=='ctrl_ros1' else '.time'),Time=Time)
+        module(prefix+('.ctrl_duration' if prefix=='ctrl_ros1' else '.duration'),Duration=Time)
+        module(prefix+('.ctrl_packages' if prefix=='ctrl_ros1' else '.packages'),get_package_share_directory=lambda name:str(ROOT/'src'/name),
             PackageNotFoundError=type('PackageNotFoundError',(Exception,),{}))
     module('rospy',Duration=Stamp,Time=Stamp)
     module('ament_index_python.packages',get_package_share_directory=lambda name:str(ROOT/'src'/name),
@@ -199,14 +201,14 @@ def install(tree):
     module('tf2_ros',TransformBroadcaster=type('TransformBroadcaster',(),{}))
     # Run the vendored Humble point-cloud representation for both sides. Its
     # ROS1 byte/endian boundary is tested separately in the runtime suite.
-    pcpath=Path(__file__).resolve().parents[1]/'src/foscar_ros1/foscar_ros1/point_cloud2.py'
-    spec=importlib.util.spec_from_file_location('foscar_ros1.point_cloud2',pcpath)
+    pcpath=Path(__file__).resolve().parents[1]/'src/ctrl_ros1/ctrl_ros1/ctrl_point_cloud2.py'
+    spec=importlib.util.spec_from_file_location('ctrl_ros1.ctrl_point_cloud2',pcpath)
     pc=importlib.util.module_from_spec(spec);sys.modules[spec.name]=pc;spec.loader.exec_module(pc)
-    sys.modules['foscar_ros1'].point_cloud2=pc
+    sys.modules['ctrl_ros1'].ctrl_point_cloud2=pc
     module('sensor_msgs_py',point_cloud2=pc)
     sys.modules['sensor_msgs_py.point_cloud2']=pc
-    adapterpath=pcpath.with_name('messages.py')
+    adapterpath=pcpath.with_name('ctrl_messages.py')
     if adapterpath.exists():
-        spec=importlib.util.spec_from_file_location('foscar_ros1.messages',adapterpath)
+        spec=importlib.util.spec_from_file_location('ctrl_ros1.ctrl_messages',adapterpath)
         adapter=importlib.util.module_from_spec(spec);sys.modules[spec.name]=adapter;spec.loader.exec_module(adapter)
-        sys.modules['foscar_ros1'].messages=adapter
+        sys.modules['ctrl_ros1'].ctrl_messages=adapter

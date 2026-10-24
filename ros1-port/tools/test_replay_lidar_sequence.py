@@ -13,7 +13,7 @@ PORT = Path(__file__).resolve().parents[1]
 def test_ordered_replay_keeps_input_manifest_and_emits_targets(tmp_path):
     source = tmp_path / 'input'
     source.mkdir()
-    route = np.loadtxt(PORT / 'src/foscar_bringup/routes/global_path.txt')[:30, :2]
+    route = np.loadtxt(PORT / 'src/ctrl_bringup/routes/global_path.txt')[:30, :2]
     meta = dict(route=route.tolist(), transforms={'lidar': dict(parent='base_link',
                 translation=[2., 0., 2.11], rotation=[0., 0., 0., 1.])})
     (source / 'metadata.json').write_text(json.dumps(meta))

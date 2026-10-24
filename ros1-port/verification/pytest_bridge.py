@@ -8,6 +8,8 @@ import functools
 import importlib
 import math
 import ros_stubs
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
+from ctrl_names import legacy_text, module_name
 
 TREE = Path(os.environ['FOSCAR_TEST_TREE'])
 for package in (TREE/'src').iterdir():
@@ -24,7 +26,7 @@ def normalized(value):
     if isinstance(value, float) and not math.isfinite(value):
         return 'NaN' if math.isnan(value) else '+Inf' if value>0 else '-Inf'
     if value is None or isinstance(value,(bool,int,float)): return value
-    if isinstance(value,str): return value.replace(str(TREE),'<TREE>')
+    if isinstance(value,str): return legacy_text(value.replace(str(TREE),'<TREE>'))
     if dataclasses.is_dataclass(value): return {f.name:normalized(getattr(value,f.name)) for f in dataclasses.fields(value)}
     if isinstance(value,dict): return {str(k):normalized(v) for k,v in value.items()}
     if isinstance(value,(tuple,list)): return [normalized(v) for v in value]
@@ -35,16 +37,17 @@ def normalized(value):
     return '<'+type(value).__name__+'>'
 
 def pytest_sessionstart(session):
-    targets=[('foscar_planning.state','Behavior','tick'),
-        ('foscar_planning.signal_stop','SignalStopPolicy','apply'),
-        ('foscar_planning.signal_stop','SignalStopPolicy','observe'),
-        ('foscar_planning.states.avoid','Avoid','compute_target'),
-        ('foscar_planning.states.yield_','Yield','compute_target'),
-        ('foscar_planning.circular_gap','CircularGap','evaluate'),
-        ('foscar_planning.highway_runtime','HighwayRuntime','apply'),
-        ('foscar_control.core','Controller','step'),
-        ('foscar_control.core','PoseEstimator','update')]
+    targets=[('ctrl_planning.ctrl_state','Behavior','tick'),
+        ('ctrl_planning.ctrl_signal_stop','SignalStopPolicy','apply'),
+        ('ctrl_planning.ctrl_signal_stop','SignalStopPolicy','observe'),
+        ('ctrl_planning.states.ctrl_avoid','Avoid','compute_target'),
+        ('ctrl_planning.states.ctrl_yield','Yield','compute_target'),
+        ('ctrl_planning.ctrl_circular_gap','CircularGap','evaluate'),
+        ('ctrl_planning.ctrl_highway_runtime','HighwayRuntime','apply'),
+        ('ctrl_control.ctrl_core','Controller','step'),
+        ('ctrl_control.ctrl_core','PoseEstimator','update')]
     for module,cls,method in targets:
+        if TREE.name=='original':module=legacy_text(module)
         owner=getattr(importlib.import_module(module),cls)
         original=getattr(owner,method)
         label=cls+'.'+method
@@ -63,7 +66,8 @@ def pytest_sessionstart(session):
     for modname,names in [('mission_markers',('mission_markers','checkpoint_markers','required_checkpoint_markers','bev_stop_markers')),
             ('prediction_markers',('prediction_markers',)),('roundabout_markers',('roundabout_markers',)),
             ('highway_markers',('highway_markers',))]:
-        owner=importlib.import_module('foscar_planning.'+modname)
+        full='foscar_planning.'+modname
+        owner=importlib.import_module(full if TREE.name=='original' else module_name(full))
         for name in names:
             original=getattr(owner,name)
             def wrapped(*args,_original=original,_label=name,**kwargs):
@@ -74,11 +78,11 @@ def pytest_sessionstart(session):
 
 def pytest_runtest_setup(item):
     global CURRENT
-    CURRENT=item.nodeid.replace('\\','/')
+    CURRENT=legacy_text(item.nodeid.replace('\\','/'))
 
 def pytest_runtest_logreport(report):
     if report.when=='call' or (report.when in ('setup','teardown') and report.failed):
-        REPORTS.append(dict(id=report.nodeid.replace('\\','/'),phase=report.when,outcome=report.outcome,
+        REPORTS.append(dict(id=legacy_text(report.nodeid.replace('\\','/')),phase=report.when,outcome=report.outcome,
             details=str(report.longrepr) if report.failed else ''))
 
 def pytest_sessionfinish(session,exitstatus):

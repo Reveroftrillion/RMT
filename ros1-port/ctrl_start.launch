@@ -8,7 +8,7 @@
 
   <!-- Create the recording parent before any recorder starts. No ROS node or UDP. -->
   <param name="/ros1_port/ctrl_start/run_dir"
-         command="python3 &quot;$(find foscar_bringup)/scripts/launch_info&quot; prepare-run-dir &quot;$(arg run_dir)&quot;" />
+         command="python3 &quot;$(find ctrl_bringup)/scripts/ctrl_launch_info&quot; prepare-run-dir &quot;$(arg run_dir)&quot;" />
   <include file="$(dirname)/docker/local.launch">
     <arg name="drive" value="$(arg drive)" />
     <arg name="bag" value="$(arg bag)" />

@@ -16,8 +16,8 @@ sys.dont_write_bytecode = True
 import numpy as np
 import rosbag
 import rospy
-from foscar_control.core import Route
-from foscar_planning.frenet import to_frenet
+from ctrl_control.ctrl_core import Route
+from ctrl_planning.ctrl_frenet import to_frenet
 
 PORT = Path(__file__).resolve().parents[1]
 
@@ -59,7 +59,7 @@ def main():
     station = float(manifest['station'])
     position = manifest['added_actor']['pos']
     actor_xy = np.array([position['x'], position['y']])
-    route_path = PORT / 'src/foscar_bringup/routes/global_path.txt'
+    route_path = PORT / 'src/ctrl_bringup/routes/global_path.txt'
     if hashlib.sha256(route_path.read_bytes()).hexdigest() != manifest['route_sha256']:
         parser.error('Route differs from the scene generation geometry')
     route = Route(np.loadtxt(route_path))

@@ -4,6 +4,10 @@
 `2026_CTRL_competition/` 원본을 비교 기준으로 보존하고 `ros1-port/`에서
 ROS1 Noetic·Python 3.10·catkin·MORAI 환경으로 개발한다.
 
+2026-10-24부터 실행 패키지는 `ctrl_*`, 자체 모듈·실행 파일·launch도 `ctrl_*` 이름이다.
+명명 변경 후 ROS1 워크스페이스를 한 번 재빌드한다. 실행 진입점은 `roslaunch ctrl_start.launch`다.
+[이전→현재 이름과 검증](ros1-port/docs/CTRL_NAMES_2026-10-24.md)을 참고한다.
+
 ## 실행
 
 **이 PC에서는 새 Bash 터미널에서 `roslaunch ctrl_start.launch`만 실행하면 된다.**
